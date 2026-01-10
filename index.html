@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ParteKARTu</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/810/810311.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .card-dark { background-color: #1e293b; border: 1px solid #334155; }
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; border-top: 1px solid #334155; display: flex; justify-content: space-around; padding: 12px 0; z-index: 50; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .day-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 0.75rem; background: #0f172a; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+        
+        .has-trips { border-color: #6366f1; background: rgba(99, 102, 241, 0.1); }
+        .driving-day { border-color: #10b981; background: rgba(16, 185, 129, 0.2) !important; color: #10b981; font-weight: 900; }
+        .selected-day { background: #6366f1 !important; color: white; border-color: white; transform: scale(0.95); }
+        .day-past { opacity: 0.4; cursor: not-allowed; }
+
+        .toast-confirm { position: fixed; top: env(safe-area-inset-top, 20px); left: 50%; transform: translateX(-50%); background: #10b981; color: white; padding: 12px 24px; border-radius: 50px; font-weight: 900; font-size: 10px; text-transform: uppercase; z-index: 100; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); animation: slideDown 0.3s ease-out; }
+        @keyframes slideDown { from { transform: translate(-50%, -100%); } to { transform: translate(-50%, 0); } }
+    </style>
+</head>
+<body class="pb-32">
+    <script type="module">
+        // Registro del Service Worker para PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(reg => {
+                    console.log('SW registrado', reg);
+                }).catch(err => console.log('Error SW', err));
+            });
+        }
+
+        // Importación de Supabase y toda tu lógica estable aquí
+        // ... [Lógica de Supabase anterior] ...
+    </script>
+</body>
+</html>
