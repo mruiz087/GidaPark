@@ -1,5 +1,5 @@
-const CACHE_NAME = 'partekartu-v1';
-const assets = ['index.html', 'manifest.json'];
+const CACHE_NAME = 'partekartu-v2';
+const assets = ['index.html', 'manifest.json', 'app.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(assets)));
