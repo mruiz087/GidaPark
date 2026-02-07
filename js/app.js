@@ -65,5 +65,6 @@ function startApp() {
    document.getElementById('app-content').classList.remove('hidden');
    document.getElementById('nav-bar').classList.remove('hidden');
    loadUserData();
+   applyTranslations();
    switchTab('inicio');
 }

@@ -10,14 +10,14 @@ async function loadGroups() {
                 <i class="fas fa-chevron-right text-slate-700"></i>
             </div>
         </div>
-    `).join('') || '<p class="text-slate-500 text-xs uppercase font-bold pt-4">No tienes grupos todavía</p>';
+    `).join('') || `<p class="text-slate-500 text-xs uppercase font-bold pt-4">${t('no_groups')}</p>`;
 }
 
 async function updateProfileName() {
     const name = document.getElementById('user-display-name').value;
     if (!name) return;
     await _supabase.from('group_members').update({ display_name: name }).eq('user_id', user.id);
-    showToast("Nombre guardado");
+    showToast(t('toast_name_saved'));
 }
 
 async function confirmTripCreation() {
@@ -55,7 +55,7 @@ async function setRealDriver(tripId, driverId) {
 
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const tripDate = new Date(trip.date);
-    if (tripDate < today) return showToast("No puedes editar días pasados");
+    if (tripDate < today) return showToast(t('toast_past_days'));
 
     await _supabase.from('trips').update({ real_driver_id: driverId || null }).eq('id', tripId);
     refreshCalendar();
@@ -67,11 +67,11 @@ async function toggleTrip(id, isI, count) {
 
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const tripDate = new Date(trip.date);
-    if (tripDate < today) return showToast("No puedes editar días pasados");
+    if (tripDate < today) return showToast(t('toast_past_days'));
 
     // Si intenta abandonar y es el conductor real, no dejarle
     if (isI && trip.real_driver_id === user.id) {
-        return showToast("No puedes abandonar si eres el conductor");
+        return showToast(t('toast_is_driver'));
     }
 
     if (isI && count === 1) await _supabase.from('trips').delete().eq('id', id);
@@ -99,14 +99,14 @@ async function createGroup() {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     const { data: g } = await _supabase.from('groups').insert([{ name, invite_code: code, admin_id: user.id }]).select().single();
     await _supabase.from('group_members').insert([{ group_id: g.id, user_id: user.id, user_email: user.email, aporta_coche: true }]);
-    alert("Código: " + code);
+    showToast("Código: " + code);
     switchTab('grupos');
 }
 
 async function joinGroup() {
     const code = document.getElementById('join-code').value.toUpperCase();
     const { data: g } = await _supabase.from('groups').select('id').eq('invite_code', code).single();
-    if (!g) return alert("Código no válido");
+    if (!g) return showToast(t('toast_invalid_code'));
     await _supabase.from('group_members').insert([{ group_id: g.id, user_id: user.id, user_email: user.email, aporta_coche: true }]);
     switchTab('grupos');
 }

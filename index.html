@@ -7,6 +7,7 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ParteKARTu</title>
 
+    <script src="js/i18n.js"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -181,10 +182,10 @@
         }
 
         .btn-selector.active {
-            background-color: #6366f1;
-            color: white;
-            border-color: #6366f1;
-            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+            background-color: #4f46e5 !important;
+            color: white !important;
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
         }
     </style>
 </head>
@@ -210,37 +211,39 @@
 
     <main id="app-content" class="hidden p-4 max-w-md mx-auto pt-4">
         <section id="tab-inicio" class="space-y-6">
-            <h2 class="text-2xl font-black italic">Inicio</h2>
+            <h2 class="text-2xl font-black italic" data-i18n="title_inicio">Inicio</h2>
             <div class="card-dark p-6 rounded-[2rem] border-b-4 border-green-500 space-y-4 shadow-lg">
-                <p class="text-[10px] font-black text-slate-500 uppercase">Nuevo Grupo</p>
+                <p class="text-[10px] font-black text-slate-500 uppercase" data-i18n="label_new_group">Nuevo Grupo</p>
                 <input type="text" id="new-group-name"
                     class="w-full p-3 bg-slate-900 rounded-xl text-sm text-center font-bold uppercase"
-                    placeholder="Nombre del grupo">
-                <button onclick="createGroup()"
-                    class="w-full bg-green-600 py-3 rounded-xl font-black text-xs uppercase">Crear Grupo</button>
+                    placeholder="Nombre del grupo" data-i18n="placeholder_group_name">
+                <button onclick="createGroup()" class="w-full bg-green-600 py-3 rounded-xl font-black text-xs uppercase"
+                    data-i18n="btn_create_group">Crear Grupo</button>
             </div>
             <div class="card-dark p-6 rounded-[2rem] border-b-4 border-indigo-500 space-y-4 shadow-lg">
-                <p class="text-[10px] font-black text-slate-500 uppercase">Unirse a Grupo</p>
+                <p class="text-[10px] font-black text-slate-500 uppercase" data-i18n="label_join_group">Unirse a Grupo
+                </p>
                 <input type="text" id="join-code"
                     class="w-full p-3 bg-slate-900 rounded-xl text-sm text-center font-bold uppercase"
-                    placeholder="CÓDIGO">
-                <button onclick="joinGroup()"
-                    class="w-full bg-indigo-600 py-3 rounded-xl font-black text-xs uppercase">Unirse</button>
+                    placeholder="CÓDIGO" data-i18n="placeholder_join_code">
+                <button onclick="joinGroup()" class="w-full bg-indigo-600 py-3 rounded-xl font-black text-xs uppercase"
+                    data-i18n="btn_join">Unirse</button>
             </div>
         </section>
 
         <section id="tab-grupos" class="hidden space-y-4">
             <div id="view-groups-list" class="space-y-3 text-center">
-                <h2 class="text-2xl font-black italic text-left">Mis Grupos</h2>
+                <h2 class="text-2xl font-black italic text-left" data-i18n="title_my_groups">Mis Grupos</h2>
                 <div id="html-groups-list" class="space-y-3"></div>
             </div>
 
             <div id="view-group-detail" class="hidden space-y-6">
                 <div class="flex items-center justify-between">
                     <button onclick="hideGroupDetail()" class="text-[10px] font-black text-slate-500 uppercase"><i
-                            class="fas fa-arrow-left mr-1"></i> Volver</button>
+                            class="fas fa-arrow-left mr-1"></i> <span data-i18n="btn_back">Volver</span></button>
                     <span id="label-group-name"
-                        class="text-[10px] font-black text-indigo-400 italic uppercase tracking-widest">Grupo</span>
+                        class="text-[10px] font-black text-indigo-400 italic uppercase tracking-widest"
+                        data-i18n="label_group">Grupo</span>
                 </div>
                 <div class="card-dark p-4 rounded-[2rem] shadow-xl">
                     <div class="flex justify-between items-center mb-4 px-2">
@@ -265,16 +268,18 @@
                 <div id="day-info" class="space-y-4">
                     <div class="flex justify-between items-center px-1">
                         <h4 id="selected-date-text"
-                            class="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Selecciona un
+                            class="text-[10px] font-black text-slate-500 uppercase tracking-widest italic"
+                            data-i18n="label_select_day">Selecciona un
                             día</h4>
                         <button id="btn-add-trip" onclick="openTripModal()"
-                            class="hidden bg-indigo-600 text-[9px] px-4 py-2 rounded-full font-black uppercase shadow-lg">+
+                            class="hidden bg-indigo-600 text-[9px] px-4 py-2 rounded-full font-black uppercase shadow-lg"
+                            data-i18n="btn_add_trip">+
                             Viaje</button>
                     </div>
                     <div id="list-trips-day" class="space-y-4"></div>
                     <button onclick="showGroupMembers()"
                         class="w-full mt-6 bg-slate-800 text-slate-300 py-3 rounded-xl text-[10px] font-black uppercase border border-slate-700">
-                        <i class="fas fa-users mr-2"></i> Ver Miembros
+                        <i class="fas fa-users mr-2"></i> <span data-i18n="btn_see_members">Ver Miembros</span>
                     </button>
                 </div>
             </div>
@@ -282,9 +287,9 @@
             <div id="view-group-members" class="hidden space-y-6">
                 <div class="flex items-center justify-between">
                     <button onclick="hideGroupMembers()" class="text-[10px] font-black text-slate-500 uppercase"><i
-                            class="fas fa-arrow-left mr-1"></i> Volver</button>
-                    <span
-                        class="text-[10px] font-black text-indigo-400 italic uppercase tracking-widest">Miembros</span>
+                            class="fas fa-arrow-left mr-1"></i> <span data-i18n="btn_back">Volver</span></button>
+                    <span class="text-[10px] font-black text-indigo-400 italic uppercase tracking-widest"
+                        data-i18n="title_members">Miembros</span>
                 </div>
                 <div id="html-members-list" class="space-y-3">
                     <!-- Members will be rendered here -->
@@ -293,14 +298,15 @@
         </section>
 
         <section id="tab-opciones" class="hidden space-y-6 text-center">
-            <h2 class="text-2xl font-black italic text-left">Ajustes</h2>
+            <h2 class="text-2xl font-black italic text-left" data-i18n="title_settings">Ajustes</h2>
             <div class="card-dark p-8 rounded-[2rem] space-y-6 shadow-xl">
                 <div class="space-y-2">
-                    <p class="text-[10px] font-black text-slate-500 uppercase text-left ml-2">Tu Nombre Público</p>
+                    <p class="text-[10px] font-black text-slate-500 uppercase text-left ml-2"
+                        data-i18n="label_public_name">Tu Nombre Público</p>
                     <div class="flex gap-2">
                         <input type="text" id="user-display-name"
                             class="flex-1 p-4 bg-slate-900 rounded-2xl border-none text-white text-sm"
-                            placeholder="Tu nombre">
+                            placeholder="Tu nombre" data-i18n="placeholder_your_name">
                         <button onclick="updateProfileName()"
                             class="bg-indigo-600 w-14 rounded-2xl flex items-center justify-center text-white">
                             <i class="fas fa-check"></i>
@@ -308,17 +314,30 @@
                     </div>
                 </div>
                 <div class="flex justify-between items-center bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
-                    <p class="text-xs font-black uppercase text-slate-300">Aporto Coche</p>
+                    <p class="text-xs font-black uppercase text-slate-300" data-i18n="label_has_car">Aporto Coche</p>
                     <input type="checkbox" id="user-has-car" onchange="updateCarStatus()"
                         class="w-6 h-6 accent-indigo-500">
+                </div>
+                <div class="space-y-2">
+                    <p class="text-[10px] font-black text-slate-500 uppercase text-left ml-2"
+                        data-i18n="label_language">Idioma</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="setLanguage('es')"
+                            class="btn-selector p-3 rounded-xl bg-slate-900 text-slate-400 text-[10px] font-black uppercase border border-slate-800 transition-all"
+                            id="lang-es">Castellano</button>
+                        <button onclick="setLanguage('eu')"
+                            class="btn-selector p-3 rounded-xl bg-slate-900 text-slate-400 text-[10px] font-black uppercase border border-slate-800 transition-all"
+                            id="lang-eu">Euskera</button>
+                    </div>
                 </div>
                 <div class="pt-4 space-y-4">
                     <button onclick="openManageGroupsModal()"
                         class="w-full bg-red-500/10 text-red-500 py-4 rounded-xl text-[10px] font-black uppercase border border-red-500/20">
-                        <i class="fas fa-exchange-alt mr-2"></i> Salir de un Grupo
+                        <i class="fas fa-exchange-alt mr-2"></i> <span data-i18n="btn_manage_groups">Salir de un
+                            Grupo</span>
                     </button>
-                    <button onclick="logout()"
-                        class="w-full text-xs font-bold text-slate-500 uppercase underline">Cerrar Sesión</button>
+                    <button onclick="logout()" class="w-full text-xs font-bold text-slate-500 uppercase underline"
+                        data-i18n="btn_logout">Cerrar Sesión</button>
                 </div>
             </div>
         </section>
@@ -343,50 +362,77 @@
     <div id="modal-trip"
         class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-6 z-50">
         <div class="card-dark w-full max-w-sm p-8 rounded-[2.5rem] space-y-6 border border-slate-700">
-            <h3 class="text-center font-black italic text-indigo-400 uppercase">Nuevo Viaje</h3>
+            <h3 class="text-center font-black italic text-indigo-400 uppercase" data-i18n="modal_title_trip">Nuevo Viaje
+            </h3>
             <div class="space-y-6 text-left">
                 <div>
-                    <label class="text-[9px] font-black text-slate-500 uppercase ml-2 mb-3 block">Trayecto</label>
+                    <label class="text-[9px] font-black text-slate-500 uppercase ml-2 mb-3 block"
+                        data-i18n="label_type">Trayecto</label>
                     <div class="grid grid-cols-3 gap-2">
-                        <button type="button" class="btn-selector active"
-                            onclick="selectTripType('ida_vuelta', event)">Ida y Vuelta</button>
-                        <button type="button" class="btn-selector" onclick="selectTripType('ida', event)">Solo
+                        <button type="button" class="btn-selector active" onclick="selectTripType('ida_vuelta', event)"
+                            data-i18n="type_ida_vuelta">Ida y Vuelta</button>
+                        <button type="button" class="btn-selector" onclick="selectTripType('ida', event)"
+                            data-i18n="type_ida">Solo
                             Ida</button>
-                        <button type="button" class="btn-selector" onclick="selectTripType('vuelta', event)">Solo
+                        <button type="button" class="btn-selector" onclick="selectTripType('vuelta', event)"
+                            data-i18n="type_vuelta">Solo
                             Vuelta</button>
                     </div>
                 </div>
                 <div>
-                    <label class="text-[9px] font-black text-slate-500 uppercase ml-2 mb-3 block">Repetición</label>
+                    <label class="text-[9px] font-black text-slate-500 uppercase ml-2 mb-3 block"
+                        data-i18n="label_repeat">Repetición</label>
                     <div class="grid grid-cols-3 gap-2">
-                        <button type="button" class="btn-selector active" onclick="selectTripRepeat(0, event)">Solo
+                        <button type="button" class="btn-selector active" onclick="selectTripRepeat(0, event)"
+                            data-i18n="repeat_none">Solo
                             hoy</button>
-                        <button type="button" class="btn-selector" onclick="selectTripRepeat(4, event)">4
+                        <button type="button" class="btn-selector" onclick="selectTripRepeat(4, event)"
+                            data-i18n="repeat_4">4
                             semanas</button>
-                        <button type="button" class="btn-selector" onclick="selectTripRepeat(12, event)">12
+                        <button type="button" class="btn-selector" onclick="selectTripRepeat(12, event)"
+                            data-i18n="repeat_12">12
                             semanas</button>
                     </div>
                 </div>
             </div>
             <div class="flex gap-3 pt-2">
-                <button onclick="closeTripModal()"
-                    class="flex-1 text-xs font-bold text-slate-500 uppercase">Cancelar</button>
+                <button onclick="closeTripModal()" class="flex-1 text-xs font-bold text-slate-500 uppercase"
+                    data-i18n="btn_cancel">Cancelar</button>
                 <button onclick="confirmTripCreation()"
-                    class="flex-1 bg-indigo-600 py-4 rounded-2xl font-black text-xs uppercase shadow-lg shadow-indigo-600/30">Crear</button>
+                    class="flex-1 bg-indigo-600 py-4 rounded-2xl font-black text-xs uppercase shadow-lg shadow-indigo-600/30"
+                    data-i18n="btn_create">Crear</button>
             </div>
         </div>
     </div>
 
+    <!-- Modal de Gestión de Grupos -->
     <div id="modal-manage-groups"
         class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-6 z-50">
         <div class="card-dark w-full max-w-sm p-8 rounded-[2.5rem] space-y-6 border border-slate-700">
-            <h3 class="text-center font-black italic text-indigo-400 uppercase">Mis Grupos</h3>
+            <h3 class="text-center font-black italic text-indigo-400 uppercase" data-i18n="modal_title_manage">Mis
+                Grupos</h3>
             <div id="list-manage-groups" class="space-y-3 max-h-64 overflow-y-auto pr-2">
                 <!-- Groups to leave will be listed here -->
             </div>
             <div class="pt-2">
                 <button onclick="closeManageGroupsModal()"
-                    class="w-full py-4 text-xs font-bold text-slate-500 uppercase">Cerrar</button>
+                    class="w-full py-4 text-xs font-bold text-slate-500 uppercase" data-i18n="btn_close">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación Personalizado -->
+    <div id="modal-confirm"
+        class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-6 z-[100]">
+        <div class="card-dark w-full max-w-sm p-8 rounded-[2.5rem] space-y-6 border border-slate-700 text-center">
+            <i id="confirm-icon" class="fas fa-question-circle text-4xl text-indigo-500"></i>
+            <p id="confirm-text" class="text-sm font-bold text-slate-200"></p>
+            <div class="flex gap-3 pt-2">
+                <button id="confirm-cancel" class="flex-1 text-xs font-bold text-slate-500 uppercase"
+                    data-i18n="btn_cancel">Utzi</button>
+                <button id="confirm-ok"
+                    class="flex-1 bg-indigo-600 py-4 rounded-2xl font-black text-xs uppercase shadow-lg shadow-indigo-600/30"
+                    data-i18n="btn_confirm">Confirmar</button>
             </div>
         </div>
     </div>

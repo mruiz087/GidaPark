@@ -54,11 +54,12 @@ function renderMembersList() {
             </div>
             ${m.aporta_coche ? '<i class="fas fa-car text-indigo-500 text-xs" title="Aporta coche"></i>' : ''}
         </div>
-    `).join('') || '<p class="text-slate-500 text-xs uppercase font-bold pt-4 text-center">No hay miembros registrados</p>';
+    `).join('') || `<p class="text-slate-500 text-xs uppercase font-bold pt-4 text-center">${t('no_members')}</p>`;
 }
 
 function refreshCalendar() {
-    document.getElementById('calendar-month-title').innerText = viewDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+    const monthYear = viewDate.toLocaleString(currentLang === 'eu' ? 'eu-ES' : 'es-ES', { month: 'long', year: 'numeric' });
+    document.getElementById('calendar-month-title').innerText = monthYear;
     _supabase.from('trips').select('*').eq('group_id', currentGroupId).then(({ data }) => {
         allTrips = data || [];
         renderCalendarUI();
@@ -72,6 +73,11 @@ function renderCalendarUI() {
     const year = viewDate.getFullYear(), month = viewDate.getMonth();
     const first = new Date(year, month, 1).getDay();
     const offset = (first === 0) ? 6 : first - 1;
+    const daysArr = t('days');
+
+    // Update day headers
+    document.querySelector('.calendar-grid.text-\\[8px\\]').innerHTML = daysArr.slice(1).concat(daysArr[0]).map(d => `<div>${d}</div>`).join('');
+
     const days = new Date(year, month + 1, 0).getDate();
     const today = new Date(); today.setHours(0, 0, 0, 0);
 
@@ -128,8 +134,8 @@ async function renderTrips() {
         }
     });
 
-    container.innerHTML = trips.map(t => {
-        const ps = t.passengers || [];
+    container.innerHTML = trips.map(trip => {
+        const ps = trip.passengers || [];
         const isI = ps.includes(user.id);
         const paxDetails = ps.map(pid => groupMembers.find(m => m.user_id === pid));
         const candidates = paxDetails.filter(m => m?.aporta_coche);
@@ -146,41 +152,43 @@ async function renderTrips() {
             );
         }
         const propName = proposed ? (proposed.display_name || proposed.user_email.split('@')[0]) : '---';
-        const real = groupMembers.find(m => m.user_id === t.real_driver_id);
+        const real = groupMembers.find(m => m.user_id === trip.real_driver_id);
         const realName = real ? (real.display_name || real.user_email.split('@')[0]) : '---';
 
         const today = new Date(); today.setHours(0, 0, 0, 0);
-        const tripDate = new Date(t.date);
+        const tripDate = new Date(trip.date);
         const isPast = tripDate < today;
+
+        const labelType = trip.type === 'ida_vuelta' ? t('type_ida_vuelta') : (trip.type === 'ida' ? t('type_ida') : t('type_vuelta'));
 
         return `
             <div class="card-dark p-6 rounded-[2rem] space-y-4 shadow-xl border border-slate-700 ${isPast ? 'opacity-75' : ''}">
                 <div class="flex justify-between items-start">
-                    <span class="text-[9px] font-black text-indigo-400 uppercase tracking-widest">${t.type === 'ida_vuelta' ? 'IDA Y VUELTA' : t.type?.toUpperCase()}</span>
+                    <span class="text-[9px] font-black text-indigo-400 uppercase tracking-widest">${labelType}</span>
                     <div class="text-right text-[8px] font-bold text-slate-500 uppercase">
-                        Sugerido: <span class="text-white">${propName}</span><br>
-                        Real: <span class="text-green-400 font-black">${realName}</span>
+                        ${t('driving_proposed')}<span class="text-white">${propName}</span><br>
+                        ${t('driving_real')}<span class="text-green-400 font-black">${realName}</span>
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     ${paxDetails.map(p => `
-                        <div class="bg-slate-900 px-3 py-1 rounded-full text-[8px] font-bold ${p?.user_id === t.real_driver_id ? 'border border-green-500 text-green-400' : 'text-slate-300 border border-slate-800'}">
+                        <div class="bg-slate-900 px-3 py-1 rounded-full text-[8px] font-bold ${p?.user_id === trip.real_driver_id ? 'border border-green-500 text-green-400' : 'text-slate-300 border border-slate-800'}">
                             ${p?.display_name || p?.user_email.split('@')[0]} (${comboStats[p?.user_id] || 0})
                         </div>`).join('')}
                 </div>
-                <select onchange="setRealDriver('${t.id}', this.value)" 
+                <select onchange="setRealDriver('${trip.id}', this.value)" 
                     ${isPast ? 'disabled' : ''}
                     class="w-full bg-slate-900 p-3 rounded-xl text-[10px] text-slate-300 border-none outline-none ${isPast ? 'cursor-not-allowed' : ''}">
-                    <option value="">¿Quién condujo?</option>
-                    ${candidates.map(d => `<option value="${d.user_id}" ${t.real_driver_id === d.user_id ? 'selected' : ''}>${d.display_name || d.user_email.split('@')[0]}</option>`).join('')}
+                    <option value="">${t('who_drove')}</option>
+                    ${candidates.map(d => `<option value="${d.user_id}" ${trip.real_driver_id === d.user_id ? 'selected' : ''}>${d.display_name || d.user_email.split('@')[0]}</option>`).join('')}
                 </select>
-                <button onclick="toggleTrip('${t.id}', ${isI}, ${ps.length})" 
+                <button onclick="toggleTrip('${trip.id}', ${isI}, ${ps.length})" 
                     ${isPast ? 'disabled' : ''}
                     class="w-full ${isPast ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed' : (isI ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-indigo-600 text-white')} py-3 rounded-xl text-[10px] font-black uppercase">
-                    ${isI ? 'Abandonar' : 'Apuntarse'}
+                    ${isI ? t('btn_abandon') : t('btn_join_trip')}
                 </button>
             </div>`;
-    }).join('') || '<p class="text-slate-600 text-[10px] uppercase font-bold text-center py-4">No hay viajes este día</p>';
+    }).join('') || `<p class="text-slate-600 text-[10px] uppercase font-bold text-center py-4">${t('no_trips')}</p>`;
 }
 
 function changeMonth(delta) { viewDate.setMonth(viewDate.getMonth() + delta); refreshCalendar(); }
@@ -206,16 +214,16 @@ async function renderManageGroups() {
             </div>
             <button onclick="leaveGroupConfirm('${g.groups.id}', '${g.groups.name}')" 
                 class="bg-red-500/10 text-red-500 px-3 py-2 rounded-lg text-[9px] font-black uppercase border border-red-500/20">
-                Salir
+                ${t('btn_leave')}
             </button>
         </div>
-    `).join('') || '<p class="text-slate-500 text-xs uppercase font-bold pt-4 text-center">No perteneces a ningún grupo</p>';
+    `).join('') || `<p class="text-slate-500 text-xs uppercase font-bold pt-4 text-center">${t('no_groups_manage')}</p>`;
 }
 
 async function leaveGroupConfirm(groupId, name) {
-    if (!confirm(`¿Estás seguro de que quieres salir del grupo "${name}"?`)) return;
+    if (!await showConfirm(`${t('confirm_leave_group')}"${name}"?`)) return;
     await _supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
-    showToast(`Has salido de "${name}"`);
+    showToast(`${t('toast_left_group')} "${name}"`);
     renderManageGroups(); // Actualizar lista en el modal
     loadGroups(); // Actualizar lista principal
 }
