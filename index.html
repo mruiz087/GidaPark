@@ -226,7 +226,8 @@
                 <input type="text" id="join-code"
                     class="w-full p-3 bg-slate-900 rounded-xl text-sm text-center font-bold uppercase"
                     placeholder="CÓDIGO" data-i18n="placeholder_join_code">
-                <button onclick="joinGroup()" class="w-full bg-indigo-600 py-3 rounded-xl font-black text-xs uppercase"
+                <button id="btn-join-group" onclick="joinGroup()"
+                    class="w-full bg-indigo-600 py-3 rounded-xl font-black text-xs uppercase"
                     data-i18n="btn_join">Unirse</button>
             </div>
         </section>
@@ -398,7 +399,7 @@
             <div class="flex gap-3 pt-2">
                 <button onclick="closeTripModal()" class="flex-1 text-xs font-bold text-slate-500 uppercase"
                     data-i18n="btn_cancel">Cancelar</button>
-                <button onclick="confirmTripCreation()"
+                <button id="btn-confirm-trip" onclick="confirmTripCreation()"
                     class="flex-1 bg-indigo-600 py-4 rounded-2xl font-black text-xs uppercase shadow-lg shadow-indigo-600/30"
                     data-i18n="btn_create">Crear</button>
             </div>

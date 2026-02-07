@@ -173,7 +173,7 @@ async function renderTrips() {
                 <div class="flex flex-wrap gap-2">
                     ${paxDetails.map(p => `
                         <div class="bg-slate-900 px-3 py-1 rounded-full text-[8px] font-bold ${p?.user_id === trip.real_driver_id ? 'border border-green-500 text-green-400' : 'text-slate-300 border border-slate-800'}">
-                            ${p?.display_name || p?.user_email.split('@')[0]} (${comboStats[p?.user_id] || 0})
+                            ${p?.display_name || p?.user_email.split('@')[0]}
                         </div>`).join('')}
                 </div>
                 <select onchange="setRealDriver('${trip.id}', this.value)" 
@@ -206,9 +206,17 @@ function closeManageGroupsModal() {
 async function renderManageGroups() {
     const { data } = await _supabase.from('group_members').select('groups(id, name, invite_code)').eq('user_id', user.id);
     const container = document.getElementById('list-manage-groups');
-    container.innerHTML = (data || []).map(g => `
+
+    const seen = new Set();
+    const unique = (data || []).filter(g => {
+        if (!g.groups || seen.has(g.groups.id)) return false;
+        seen.add(g.groups.id);
+        return true;
+    });
+
+    container.innerHTML = unique.map(g => `
         <div class="p-4 bg-slate-900 rounded-2xl flex justify-between items-center border border-slate-800">
-            <div class="flex flex-col">
+            <div class="flex flex-col text-left">
                 <span class="font-black text-[10px] uppercase italic text-slate-200">${g.groups.name}</span>
                 <span class="text-[8px] font-bold text-slate-500 tracking-widest mt-1">${g.groups.invite_code}</span>
             </div>
@@ -222,6 +230,10 @@ async function renderManageGroups() {
 
 async function leaveGroupConfirm(groupId, name) {
     if (!await showConfirm(`${t('confirm_leave_group')}"${name}"?`)) return;
+
+    // Limpiar viajes futuros antes de salir
+    await cleanupFutureTrips(groupId);
+
     await _supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
     showToast(`${t('toast_left_group')} "${name}"`);
     renderManageGroups(); // Actualizar lista en el modal

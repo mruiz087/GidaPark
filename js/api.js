@@ -1,6 +1,15 @@
 async function loadGroups() {
     const { data } = await _supabase.from('group_members').select('groups(id, name, invite_code)').eq('user_id', user.id);
-    document.getElementById('html-groups-list').innerHTML = (data || []).map(g => `
+
+    // Filtrar duplicados en la UI por si acaso la DB ya tiene basura
+    const seen = new Set();
+    const uniqueGroups = (data || []).filter(g => {
+        if (!g.groups || seen.has(g.groups.id)) return false;
+        seen.add(g.groups.id);
+        return true;
+    });
+
+    document.getElementById('html-groups-list').innerHTML = uniqueGroups.map(g => `
         <div onclick="showGroupDetail('${g.groups.id}', '${g.groups.name}')" class="p-6 card-dark rounded-3xl cursor-pointer border-l-8 border-indigo-600 shadow-md">
             <div class="flex justify-between items-center">
                 <div class="flex flex-col gap-2 items-start text-left">
@@ -94,6 +103,47 @@ async function updateCarStatus() {
     await _supabase.from('group_members').update({ aporta_coche: document.getElementById('user-has-car').checked }).eq('user_id', user.id);
 }
 
+async function cleanupFutureTrips(groupId) {
+    if (!user) return;
+    const today = new Date().toISOString().split('T')[0];
+
+    // 1. Obtener viajes del grupo desde hoy
+    const { data: trips, error } = await _supabase.from('trips')
+        .select('*')
+        .eq('group_id', groupId)
+        .gte('date', today);
+
+    if (error || !trips) return;
+
+    for (const trip of trips) {
+        let updates = {};
+        let changed = false;
+
+        // Quitar de pasajeros (asegurar que tratamos con array)
+        let pax = Array.isArray(trip.passengers) ? trip.passengers : [];
+        if (pax.includes(user.id)) {
+            updates.passengers = pax.filter(id => id !== user.id);
+            changed = true;
+        }
+
+        // Quitar como conductor real
+        if (trip.real_driver_id === user.id) {
+            updates.real_driver_id = null;
+            changed = true;
+        }
+
+        if (changed) {
+            // Si el viaje queda vacío de pasajeros, lo borramos para no dejar basura
+            const finalPax = updates.passengers !== undefined ? updates.passengers : pax;
+            if (finalPax.length === 0) {
+                await _supabase.from('trips').delete().eq('id', trip.id);
+            } else {
+                await _supabase.from('trips').update(updates).eq('id', trip.id);
+            }
+        }
+    }
+}
+
 async function createGroup() {
     const name = document.getElementById('new-group-name').value; if (!name) return;
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -104,11 +154,49 @@ async function createGroup() {
 }
 
 async function joinGroup() {
-    const code = document.getElementById('join-code').value.toUpperCase();
-    const { data: g } = await _supabase.from('groups').select('id').eq('invite_code', code).single();
-    if (!g) return showToast(t('toast_invalid_code'));
-    await _supabase.from('group_members').insert([{ group_id: g.id, user_id: user.id, user_email: user.email, aporta_coche: true }]);
-    switchTab('grupos');
+    const btn = document.getElementById('btn-join-group');
+    const input = document.getElementById('join-code');
+    const code = input.value.trim().toUpperCase();
+    if (!code || btn.disabled) return;
+
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
+
+    try {
+        const { data: g } = await _supabase.from('groups').select('id').eq('invite_code', code).maybeSingle();
+        if (!g) {
+            showToast(t('toast_invalid_code'));
+            return;
+        }
+
+        // Comprobación de seguridad absoluta
+        const { data: memberCheck } = await _supabase.from('group_members')
+            .select('id')
+            .eq('group_id', g.id)
+            .eq('user_id', user.id);
+
+        if (memberCheck && memberCheck.length > 0) {
+            showToast(t('toast_already_in_group'));
+            input.value = "";
+            switchTab('grupos');
+            return;
+        }
+
+        const { error } = await _supabase.from('group_members').insert([
+            { group_id: g.id, user_id: user.id, user_email: user.email, aporta_coche: true }
+        ]);
+
+        if (error) throw error;
+
+        input.value = ""; // Limpiar input
+        switchTab('grupos');
+    } catch (err) {
+        console.error(err);
+        showToast("Error al unirse");
+    } finally {
+        btn.disabled = false;
+        btn.style.opacity = "1";
+    }
 }
 
 

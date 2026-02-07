@@ -29,7 +29,7 @@ const fns = {
    selectDay, toggleTrip, openTripModal, closeTripModal, confirmTripCreation,
    updateCarStatus, logout, changeMonth, updateProfileName, setRealDriver,
    selectTripType, selectTripRepeat, openManageGroupsModal, closeManageGroupsModal, leaveGroupConfirm,
-   showGroupMembers, hideGroupMembers
+   showGroupMembers, hideGroupMembers, cleanupFutureTrips
 };
 Object.assign(window, fns);
 
