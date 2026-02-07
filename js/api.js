@@ -1,9 +1,14 @@
 async function loadGroups() {
-    const { data } = await _supabase.from('group_members').select('groups(id, name)').eq('user_id', user.id);
+    const { data } = await _supabase.from('group_members').select('groups(id, name, invite_code)').eq('user_id', user.id);
     document.getElementById('html-groups-list').innerHTML = (data || []).map(g => `
-        <div onclick="showGroupDetail('${g.groups.id}', '${g.groups.name}')" class="p-6 card-dark rounded-3xl flex justify-between items-center cursor-pointer border-l-8 border-indigo-600 shadow-md">
-            <span class="font-black text-sm uppercase italic text-slate-200">${g.groups.name}</span>
-            <i class="fas fa-chevron-right text-slate-700"></i>
+        <div onclick="showGroupDetail('${g.groups.id}', '${g.groups.name}')" class="p-6 card-dark rounded-3xl cursor-pointer border-l-8 border-indigo-600 shadow-md">
+            <div class="flex justify-between items-center">
+                <div class="flex flex-col gap-2 items-start text-left">
+                    <span class="font-black text-sm uppercase italic text-slate-200">${g.groups.name}</span>
+                    <span class="text-[11px] font-bold text-white tracking-widest bg-slate-900 w-24 py-1.5 rounded-lg inline-block text-center">${g.groups.invite_code}</span>
+                </div>
+                <i class="fas fa-chevron-right text-slate-700"></i>
+            </div>
         </div>
     `).join('') || '<p class="text-slate-500 text-xs uppercase font-bold pt-4">No tienes grupos todavía</p>';
 }
@@ -16,46 +21,59 @@ async function updateProfileName() {
 }
 
 async function confirmTripCreation() {
-    const type = selectedTripType;  // Usar variable en lugar de select
-    const repeat = selectedTripRepeat;  // Usar variable en lugar de select
+    const type = selectedTripType;
+    const repeat = selectedTripRepeat;
     let tripDates = [selectedDate];
-    for (let i = 1; i <= repeat; i++) {
+    // Crear fechas de viaje (si repeat es 4, crea 4 semanas en total incluyendo hoy)
+    for (let i = 1; i < repeat; i++) {
         let d = new Date(selectedDate);
-        d.setDate(d.getDate() + (i * 7));
+        d.setUTCDate(d.getUTCDate() + (i * 7)); // Usar UTC para evitar problemas de zona horaria
         tripDates.push(d.toISOString().split('T')[0]);
     }
 
-    // Si es ida y vuelta, crear dos conjuntos de viajes
-    if (type === 'ida_vuelta') {
-        const tripsIda = tripDates.map(date => ({
-            group_id: currentGroupId, date, passengers: [user.id], type: 'ida'
-        }));
-        const tripsVuelta = tripDates.map(date => ({
-            group_id: currentGroupId, date, passengers: [user.id], type: 'vuelta'
-        }));
-        await _supabase.from('trips').insert([...tripsIda, ...tripsVuelta]);
-    } else {
-        // Crear solo el tipo seleccionado
-        await _supabase.from('trips').insert(tripDates.map(date => ({
-            group_id: currentGroupId, date, passengers: [user.id], type
-        })));
-    }
+    // Crear viajes con el tipo seleccionado (ida_vuelta es un tipo único)
+    await _supabase.from('trips').insert(tripDates.map(date => ({
+        group_id: currentGroupId, date, passengers: [user.id], type
+    })));
 
-    // Resetear valores por defecto
+    // Resetear valores por defecto y UI
     selectedTripType = 'ida_vuelta';
     selectedTripRepeat = 0;
+
+    // Resetear botones del modal visualmente
+    document.querySelectorAll('#modal-trip .btn-selector').forEach(btn => btn.classList.remove('active'));
+    document.querySelector('#modal-trip [onclick*="ida_vuelta"]').classList.add('active');
+    document.querySelector('#modal-trip [onclick*="(0, event)"]').classList.add('active');
 
     closeTripModal();
     refreshCalendar();
 }
 
 async function setRealDriver(tripId, driverId) {
+    const trip = allTrips.find(x => x.id === tripId);
+    if (!trip) return;
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const tripDate = new Date(trip.date);
+    if (tripDate < today) return showToast("No puedes editar días pasados");
+
     await _supabase.from('trips').update({ real_driver_id: driverId || null }).eq('id', tripId);
     refreshCalendar();
 }
 
 async function toggleTrip(id, isI, count) {
     let trip = allTrips.find(x => x.id === id);
+    if (!trip) return;
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const tripDate = new Date(trip.date);
+    if (tripDate < today) return showToast("No puedes editar días pasados");
+
+    // Si intenta abandonar y es el conductor real, no dejarle
+    if (isI && trip.real_driver_id === user.id) {
+        return showToast("No puedes abandonar si eres el conductor");
+    }
+
     if (isI && count === 1) await _supabase.from('trips').delete().eq('id', id);
     else {
         let p = isI ? trip.passengers.filter(u => u !== user.id) : [...trip.passengers, user.id];
@@ -93,17 +111,6 @@ async function joinGroup() {
     switchTab('grupos');
 }
 
-async function leaveGroup() {
-    if (!confirm("¿Salir del grupo actual?")) return;
-    await _supabase.from('group_members').delete().eq('group_id', currentGroupId).eq('user_id', user.id);
-    showToast("Has salido del grupo");
-    hideGroupDetail();
-    loadGroups();
-}
 
-async function deleteAccount() {
-    if (!confirm("¿Borrar cuenta?")) return;
-    await _supabase.from('group_members').delete().eq('user_id', user.id);
-    await _supabase.auth.signOut();
-    location.reload();
-}
+
+

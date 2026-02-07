@@ -27,8 +27,9 @@ if ('serviceWorker' in navigator) {
 const fns = {
    switchTab, createGroup, joinGroup, showGroupDetail, hideGroupDetail,
    selectDay, toggleTrip, openTripModal, closeTripModal, confirmTripCreation,
-   updateCarStatus, logout, changeMonth, updateProfileName, setRealDriver, deleteAccount,
-   selectTripType, selectTripRepeat, leaveGroup
+   updateCarStatus, logout, changeMonth, updateProfileName, setRealDriver,
+   selectTripType, selectTripRepeat, openManageGroupsModal, closeManageGroupsModal, leaveGroupConfirm,
+   showGroupMembers, hideGroupMembers
 };
 Object.assign(window, fns);
 
