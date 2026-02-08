@@ -57,13 +57,14 @@ function renderMembersList() {
     `).join('') || `<p class="text-slate-500 text-xs uppercase font-bold pt-4 text-center">${t('no_members')}</p>`;
 }
 
-function refreshCalendar() {
+function refreshCalendar(showNotification = false) {
     const monthYear = viewDate.toLocaleString(currentLang === 'eu' ? 'eu-ES' : 'es-ES', { month: 'long', year: 'numeric' });
     document.getElementById('calendar-month-title').innerText = monthYear;
     _supabase.from('trips').select('*').eq('group_id', currentGroupId).then(({ data }) => {
         allTrips = data || [];
         renderCalendarUI();
         if (selectedDate) renderTrips();
+        if (showNotification) showToast(t('toast_calendar_refreshed'));
     });
 }
 

@@ -272,10 +272,16 @@
                             class="text-[10px] font-black text-slate-500 uppercase tracking-widest italic"
                             data-i18n="label_select_day">Selecciona un
                             día</h4>
-                        <button id="btn-add-trip" onclick="openTripModal()"
-                            class="hidden bg-indigo-600 text-[9px] px-4 py-2 rounded-full font-black uppercase shadow-lg"
-                            data-i18n="btn_add_trip">+
-                            Viaje</button>
+                        <div class="flex items-center gap-2">
+                            <button onclick="refreshCalendar(true)"
+                                class="bg-slate-800 text-slate-300 p-2 rounded-lg text-[9px] font-black uppercase border border-slate-700 hover:bg-slate-700 transition-all">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <button id="btn-add-trip" onclick="openTripModal()"
+                                class="hidden bg-indigo-600 text-[9px] px-4 py-2 rounded-full font-black uppercase shadow-lg"
+                                data-i18n="btn_add_trip">+
+                                Viaje</button>
+                        </div>
                     </div>
                     <div id="list-trips-day" class="space-y-4"></div>
                     <button onclick="showGroupMembers()"
