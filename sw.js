@@ -1,4 +1,4 @@
-const CACHE_NAME = 'partekartu-v1.3';
+const CACHE_NAME = 'partekartu-v1.4';
 const assets = [
   './',
   './index.html', 
@@ -54,4 +54,5 @@ self.addEventListener('fetch', e => {
         caches.match(e.request).then(res => res || fetch(e.request))
     );
 });
+
 
