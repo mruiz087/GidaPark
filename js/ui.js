@@ -22,7 +22,7 @@ async function showGroupDetail(id, name) {
     document.getElementById('view-groups-list').classList.add('hidden');
     document.getElementById('view-group-detail').classList.remove('hidden');
     document.getElementById('label-group-name').innerText = name;
-    const { data } = await _supabase.from('group_members').select('*').eq('group_id', currentGroupId);
+    const { data } = await _supabase.schema('flexible_carpooling').from('flexible_members').select('*').eq('group_id', currentGroupId);
     groupMembers = data || [];
     refreshCalendar();
     renderMembersList();
@@ -60,7 +60,7 @@ function renderMembersList() {
 function refreshCalendar(showNotification = false) {
     const monthYear = viewDate.toLocaleString(currentLang === 'eu' ? 'eu-ES' : 'es-ES', { month: 'long', year: 'numeric' });
     document.getElementById('calendar-month-title').innerText = monthYear;
-    _supabase.from('trips').select('*').eq('group_id', currentGroupId).then(({ data }) => {
+    _supabase.schema('flexible_carpooling').from('flexible_trips').select('*').eq('group_id', currentGroupId).then(({ data }) => {
         allTrips = data || [];
         renderCalendarUI();
         if (selectedDate) renderTrips();
@@ -205,23 +205,35 @@ function closeManageGroupsModal() {
 }
 
 async function renderManageGroups() {
-    const { data } = await _supabase.from('group_members').select('groups(id, name, invite_code)').eq('user_id', user.id);
-    const container = document.getElementById('list-manage-groups');
+    // 1. Obtener los IDs de los grupos
+    const { data: members, error: memberError } = await _supabase.schema('flexible_carpooling')
+        .from('flexible_members')
+        .select('group_id')
+        .eq('user_id', user.id);
 
-    const seen = new Set();
-    const unique = (data || []).filter(g => {
-        if (!g.groups || seen.has(g.groups.id)) return false;
-        seen.add(g.groups.id);
-        return true;
-    });
+    if (memberError) return;
 
-    container.innerHTML = unique.map(g => `
+    const groupIds = [...new Set(members.map(m => m.group_id))];
+    if (groupIds.length === 0) {
+        document.getElementById('list-manage-groups').innerHTML = `<p class="text-slate-500 text-xs uppercase font-bold pt-4 text-center">${t('no_groups_manage')}</p>`;
+        return;
+    }
+
+    // 2. Obtener detalles de los grupos
+    const { data: unique, error: groupError } = await _supabase
+        .from('groups')
+        .select('id, name, code')
+        .in('id', groupIds);
+
+    if (groupError) return;
+
+    container.innerHTML = (unique || []).map(g => `
         <div class="p-4 bg-slate-900 rounded-2xl flex justify-between items-center border border-slate-800">
             <div class="flex flex-col text-left">
-                <span class="font-black text-[10px] uppercase italic text-slate-200">${g.groups.name}</span>
-                <span class="text-[8px] font-bold text-slate-500 tracking-widest mt-1">${g.groups.invite_code}</span>
+                <span class="font-black text-[10px] uppercase italic text-slate-200">${g.name}</span>
+                <span class="text-[8px] font-bold text-slate-500 tracking-widest mt-1">${g.code}</span>
             </div>
-            <button onclick="leaveGroupConfirm('${g.groups.id}', '${g.groups.name}')" 
+            <button onclick="leaveGroupConfirm('${g.id}', '${g.name}')" 
                 class="bg-red-500/10 text-red-500 px-3 py-2 rounded-lg text-[9px] font-black uppercase border border-red-500/20">
                 ${t('btn_leave')}
             </button>
@@ -235,7 +247,7 @@ async function leaveGroupConfirm(groupId, name) {
     // Limpiar viajes futuros antes de salir
     await cleanupFutureTrips(groupId);
 
-    await _supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+    await _supabase.schema('flexible_carpooling').from('flexible_members').delete().eq('group_id', groupId).eq('user_id', user.id);
     showToast(`${t('toast_left_group')} "${name}"`);
     renderManageGroups(); // Actualizar lista en el modal
     loadGroups(); // Actualizar lista principal
