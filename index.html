@@ -5,9 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ParteKARTu</title>
+    <title>GidaPark</title>
 
-    <script src="js/i18n.js"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -98,9 +97,107 @@
             border-color: white;
         }
 
+        .day-cell.today::before,
+        .fixed-day-cell.today::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 6px;
+            height: 6px;
+            background: #fbbf24;
+            border-radius: 50%;
+            box-shadow: 0 0 6px #fbbf24;
+        }
+
         .day-past {
             opacity: 0.4;
             cursor: not-allowed;
+            background: #1e293b;
+            border-style: dashed;
+        }
+
+        /* Fixed Calendar Specific Styles */
+        .fixed-day-cell {
+            aspect-ratio: 1;
+            border-radius: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #334155;
+            position: relative;
+            cursor: pointer;
+            background: #0f172a;
+            transition: all 0.2s;
+        }
+
+        .fixed-day-cell:active {
+            scale: 0.95;
+        }
+
+        .fixed-day-past {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+            background: #1e293b;
+            border-style: dashed;
+        }
+
+        .fixed-selected-day {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Animación para días con baja sin cubrir */
+        .warning-bg {
+            border-color: #ef4444 !important;
+            background: rgba(239, 68, 68, 0.15) !important;
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        /* Day Selection Pills for Routine Modal */
+        .day-btn-pill {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .day-btn-pill.active {
+            background: #6366f1 !important;
+            border-color: #818cf8 !important;
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+            transform: scale(1.05);
+        }
+
+        .day-btn-pill:active {
+            transform: scale(0.95);
         }
 
         .toast-confirm {
@@ -193,11 +290,11 @@
 <body class="pb-32">
 
     <div id="loading-overlay" class="fixed inset-0 bg-slate-950 flex items-center justify-center z-[100]">
-        <div class="text-indigo-500 animate-pulse font-black italic text-xl">ParteKARTu...</div>
+        <div class="text-indigo-500 animate-pulse font-black italic text-xl">GidaPark...</div>
     </div>
 
     <div id="auth-screen" class="hidden min-h-screen flex-col items-center justify-center p-6">
-        <h1 class="text-4xl font-black italic mb-8 tracking-tighter text-indigo-500">ParteKARTu</h1>
+        <h1 class="text-4xl font-black italic mb-8 tracking-tighter text-indigo-500">GidaPark</h1>
         <div class="w-full max-w-sm card-dark p-8 rounded-[2.5rem] space-y-4 shadow-2xl">
             <input type="email" id="email" class="w-full p-4 bg-slate-900 rounded-2xl border-none text-white text-sm"
                 placeholder="Email">
@@ -211,40 +308,58 @@
 
     <main id="app-content" class="hidden p-4 max-w-md mx-auto pt-4">
         <section id="tab-inicio" class="space-y-6">
-            <h2 class="text-2xl font-black italic" data-i18n="title_inicio">Inicio</h2>
+            <h2 class="text-2xl font-black italic" data-i18n="shared.inicio">Inicio</h2>
             <div class="card-dark p-6 rounded-[2rem] border-b-4 border-green-500 space-y-4 shadow-lg">
-                <p class="text-[10px] font-black text-slate-500 uppercase" data-i18n="label_new_group">Nuevo Grupo</p>
+                <p class="text-[10px] font-black text-slate-500 uppercase" data-i18n="shared.nuevo_grupo">Nuevo Grupo
+                </p>
+
+                <!-- Group Type Selector -->
+                <div class="space-y-2">
+                    <label class="text-[9px] font-black text-slate-500 uppercase ml-2 block"
+                        data-i18n="group_type.select">Tipo de grupo</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" class="btn-selector active" id="type-flexible"
+                            onclick="selectGroupType('flexible', event)">
+                            <span data-i18n="group_type.flexible">🔄 Flexible</span>
+                        </button>
+                        <button type="button" class="btn-selector" id="type-fixed"
+                            onclick="selectGroupType('fixed', event)">
+                            <span data-i18n="group_type.fixed">📅 Fijo</span>
+                        </button>
+                    </div>
+                </div>
+
                 <input type="text" id="new-group-name"
                     class="w-full p-3 bg-slate-900 rounded-xl text-sm text-center font-bold uppercase"
-                    placeholder="Nombre del grupo" data-i18n="placeholder_group_name">
+                    placeholder="Nombre del grupo" data-i18n="shared.nombre_grupo">
                 <button onclick="createGroup()" class="w-full bg-green-600 py-3 rounded-xl font-black text-xs uppercase"
-                    data-i18n="btn_create_group">Crear Grupo</button>
+                    data-i18n="shared.crear_grupo">Crear Grupo</button>
             </div>
             <div class="card-dark p-6 rounded-[2rem] border-b-4 border-indigo-500 space-y-4 shadow-lg">
-                <p class="text-[10px] font-black text-slate-500 uppercase" data-i18n="label_join_group">Unirse a Grupo
+                <p class="text-[10px] font-black text-slate-500 uppercase" data-i18n="shared.tienes_codigo">Unirse a
+                    Grupo
                 </p>
                 <input type="text" id="join-code"
                     class="w-full p-3 bg-slate-900 rounded-xl text-sm text-center font-bold uppercase"
-                    placeholder="CÓDIGO" data-i18n="placeholder_join_code">
+                    placeholder="CÓDIGO" data-i18n="shared.codigo">
                 <button id="btn-join-group" onclick="joinGroup()"
                     class="w-full bg-indigo-600 py-3 rounded-xl font-black text-xs uppercase"
-                    data-i18n="btn_join">Unirse</button>
+                    data-i18n="shared.unirse_codigo">Unirse</button>
             </div>
         </section>
 
         <section id="tab-grupos" class="hidden space-y-4">
             <div id="view-groups-list" class="space-y-3 text-center">
-                <h2 class="text-2xl font-black italic text-left" data-i18n="title_my_groups">Mis Grupos</h2>
+                <h2 class="text-2xl font-black italic text-left" data-i18n="shared.mis_grupos">Mis Grupos</h2>
                 <div id="html-groups-list" class="space-y-3"></div>
             </div>
 
             <div id="view-group-detail" class="hidden space-y-6">
                 <div class="flex items-center justify-between">
                     <button onclick="hideGroupDetail()" class="text-[10px] font-black text-slate-500 uppercase"><i
-                            class="fas fa-arrow-left mr-1"></i> <span data-i18n="btn_back">Volver</span></button>
+                            class="fas fa-arrow-left mr-1"></i> <span data-i18n="shared.volver">Volver</span></button>
                     <span id="label-group-name"
-                        class="text-[10px] font-black text-indigo-400 italic uppercase tracking-widest"
-                        data-i18n="label_group">Grupo</span>
+                        class="text-[10px] font-black text-indigo-400 italic uppercase tracking-widest">Grupo</span>
                 </div>
                 <div class="card-dark p-4 rounded-[2rem] shadow-xl">
                     <div class="flex justify-between items-center mb-4 px-2">
@@ -270,7 +385,7 @@
                     <div class="flex justify-between items-center px-1">
                         <h4 id="selected-date-text"
                             class="text-[10px] font-black text-slate-500 uppercase tracking-widest italic"
-                            data-i18n="label_select_day">Selecciona un
+                            data-i18n="flexible.selecciona_dia">Selecciona un
                             día</h4>
                         <div class="flex items-center gap-2">
                             <button onclick="refreshCalendar(true)"
@@ -279,55 +394,120 @@
                             </button>
                             <button id="btn-add-trip" onclick="openTripModal()"
                                 class="hidden bg-indigo-600 text-[9px] px-4 py-2 rounded-full font-black uppercase shadow-lg"
-                                data-i18n="btn_add_trip">+
+                                data-i18n="flexible.agregar_viaje">+
                                 Viaje</button>
                         </div>
                     </div>
                     <div id="list-trips-day" class="space-y-4"></div>
-                    <button onclick="showGroupMembers()"
-                        class="w-full mt-6 bg-slate-800 text-slate-300 py-3 rounded-xl text-[10px] font-black uppercase border border-slate-700">
-                        <i class="fas fa-users mr-2"></i> <span data-i18n="btn_see_members">Ver Miembros</span>
-                    </button>
+                    <div class="space-y-3 pt-4 border-t border-slate-700">
+                        <button onclick="showGroupMembers()"
+                            class="w-full bg-slate-800 text-slate-300 py-3 rounded-xl text-[10px] font-black uppercase border border-slate-700">
+                            <i class="fas fa-users mr-2"></i> <span data-i18n="shared.ver_miembros">Ver Miembros</span>
+                        </button>
+
+                        <div
+                            class="flex justify-between items-center bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-car text-indigo-400 text-xs"></i>
+                                <p class="text-[9px] font-black uppercase text-slate-300"
+                                    data-i18n="flexible.aporto_coche">Aporto
+                                    Coche</p>
+                            </div>
+                            <input type="checkbox" id="group-user-has-car" onchange="updateGroupCarStatus(event)"
+                                class="w-5 h-5 accent-indigo-500">
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div id="view-group-members" class="hidden space-y-6">
                 <div class="flex items-center justify-between">
                     <button onclick="hideGroupMembers()" class="text-[10px] font-black text-slate-500 uppercase"><i
-                            class="fas fa-arrow-left mr-1"></i> <span data-i18n="btn_back">Volver</span></button>
+                            class="fas fa-arrow-left mr-1"></i> <span data-i18n="shared.volver">Volver</span></button>
                     <span class="text-[10px] font-black text-indigo-400 italic uppercase tracking-widest"
-                        data-i18n="title_members">Miembros</span>
+                        data-i18n="shared.miembros">Miembros</span>
                 </div>
                 <div id="html-members-list" class="space-y-3">
                     <!-- Members will be rendered here -->
                 </div>
             </div>
+
+            <!-- VISTA DETALLE GRUPO FIJO (From GidApp) -->
+            <div id="view-group-detail-fixed" class="hidden space-y-4">
+                <div class="flex items-center justify-between">
+                    <button onclick="hideGroupDetail()" class="text-[10px] font-black text-slate-500 uppercase"><i
+                            class="fas fa-arrow-left mr-1"></i> <span data-i18n="shared.volver">Volver</span></button>
+                    <span id="label-group-name-fixed"
+                        class="text-[10px] font-black text-amber-500 italic uppercase tracking-widest">Grupo Fijo</span>
+                </div>
+
+                <div class="flex justify-between items-center px-2 mb-2">
+                    <button onclick="changeMonth(-1)" class="p-2 text-slate-400"><i
+                            class="fas fa-chevron-left"></i></button>
+                    <div class="text-center">
+                        <h3 id="calendar-month-year"
+                            class="font-black uppercase italic text-white text-sm tracking-widest">
+                        </h3>
+                        <p id="current-group-title"
+                            class="text-[9px] text-indigo-400 font-bold uppercase tracking-widest opacity-80"></p>
+                    </div>
+                    <button onclick="changeMonth(1)" class="p-2 text-slate-400"><i
+                            class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="card-dark p-4">
+                    <div class="grid grid-cols-7 gap-2 text-[8px] text-slate-500 font-black uppercase text-center mb-2">
+                        <div>DO</div>
+                        <div>LU</div>
+                        <div>MA</div>
+                        <div>MI</div>
+                        <div>JU</div>
+                        <div>VI</div>
+                        <div>SA</div>
+                    </div>
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-2"></div>
+                    <div id="calendar-legend"
+                        class="flex flex-wrap justify-center gap-3 mt-4 pt-4 border-t border-slate-700"></div>
+                    <div class="mt-8 px-4 pb-4 space-y-3">
+                        <button onclick="refreshFixedData()"
+                            class="w-full p-4 rounded-2xl bg-indigo-900/20 border border-indigo-500/30 text-indigo-400 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-900/40 transition-all"
+                            data-i18n="shared.refrescar">Refrescar</button>
+
+                        <button onclick="abrirCrearDeuda()"
+                            class="w-full p-4 rounded-2xl bg-emerald-900/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-900/40 transition-all"
+                            data-i18n="fixed.crear_deuda">Crear Deuda</button>
+
+                        <button onclick="abrirTablaDeudas()"
+                            class="w-full p-4 rounded-2xl bg-cyan-900/20 border border-cyan-500/30 text-cyan-400 text-[10px] font-black uppercase tracking-widest hover:bg-cyan-900/40 transition-all"
+                            data-i18n="fixed.ver_deudas">Ver Deudas</button>
+
+                        <button id="btn-toggle-baja" onclick="toggleOnLeave()"
+                            class="w-full py-4 bg-amber-900/20 border border-amber-500/30 text-amber-400 text-[10px] font-black uppercase rounded-xl hover:bg-amber-900/40 transition-all"
+                            data-i18n="fixed.estoy_de_baja">Estoy de baja</button>
+
+                    </div>
+                </div>
+            </div>
         </section>
 
         <section id="tab-opciones" class="hidden space-y-6 text-center">
-            <h2 class="text-2xl font-black italic text-left" data-i18n="title_settings">Ajustes</h2>
+            <h2 class="text-2xl font-black italic text-left" data-i18n="shared.ajustes">Ajustes</h2>
             <div class="card-dark p-8 rounded-[2rem] space-y-6 shadow-xl">
                 <div class="space-y-2">
                     <p class="text-[10px] font-black text-slate-500 uppercase text-left ml-2"
-                        data-i18n="label_public_name">Tu Nombre Público</p>
+                        data-i18n="shared.nombre_usuario">Tu Nombre Público</p>
                     <div class="flex gap-2">
                         <input type="text" id="user-display-name"
                             class="flex-1 p-4 bg-slate-900 rounded-2xl border-none text-white text-sm"
-                            placeholder="Tu nombre" data-i18n="placeholder_your_name">
+                            placeholder="Tu nombre">
                         <button onclick="updateProfileName()"
                             class="bg-indigo-600 w-14 rounded-2xl flex items-center justify-center text-white">
                             <i class="fas fa-check"></i>
                         </button>
                     </div>
                 </div>
-                <div class="flex justify-between items-center bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
-                    <p class="text-xs font-black uppercase text-slate-300" data-i18n="label_has_car">Aporto Coche</p>
-                    <input type="checkbox" id="user-has-car" onchange="updateCarStatus()"
-                        class="w-6 h-6 accent-indigo-500">
-                </div>
                 <div class="space-y-2">
-                    <p class="text-[10px] font-black text-slate-500 uppercase text-left ml-2"
-                        data-i18n="label_language">Idioma</p>
+                    <p class="text-[10px] font-black text-slate-500 uppercase text-left ml-2" data-i18n="shared.idioma">
+                        Idioma</p>
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="setLanguage('es')"
                             class="btn-selector p-3 rounded-xl bg-slate-900 text-slate-400 text-[10px] font-black uppercase border border-slate-800 transition-all"
@@ -340,11 +520,11 @@
                 <div class="pt-4 space-y-4">
                     <button onclick="openManageGroupsModal()"
                         class="w-full bg-red-500/10 text-red-500 py-4 rounded-xl text-[10px] font-black uppercase border border-red-500/20">
-                        <i class="fas fa-exchange-alt mr-2"></i> <span data-i18n="btn_manage_groups">Salir de un
+                        <i class="fas fa-exchange-alt mr-2"></i> <span data-i18n="shared.salir_grupo">Salir de un
                             Grupo</span>
                     </button>
                     <button onclick="logout()" class="w-full text-xs font-bold text-slate-500 uppercase underline"
-                        data-i18n="btn_logout">Cerrar Sesión</button>
+                        data-i18n="shared.cerrar_sesion">Cerrar Sesión</button>
                 </div>
             </div>
         </section>
@@ -353,61 +533,65 @@
     <nav id="nav-bar" class="nav-bar hidden">
         <button onclick="switchTab('inicio')" id="nav-inicio" class="flex flex-col items-center gap-1 text-slate-500">
             <i id="nav-inicio-icon" class="fas fa-compass text-xl"></i>
-            <span id="nav-inicio-text" class="text-[10px] font-black uppercase tracking-wider hidden">Inicio</span>
+            <span id="nav-inicio-text" class="text-[10px] font-black uppercase tracking-wider hidden"
+                data-i18n="shared.inicio">Inicio</span>
         </button>
         <button onclick="switchTab('grupos')" id="nav-grupos" class="flex flex-col items-center gap-1 text-slate-500">
             <i id="nav-grupos-icon" class="fas fa-car-side text-xl"></i>
-            <span id="nav-grupos-text" class="text-[10px] font-black uppercase tracking-wider hidden">Grupos</span>
+            <span id="nav-grupos-text" class="text-[10px] font-black uppercase tracking-wider hidden"
+                data-i18n="shared.grupos">Grupos</span>
         </button>
         <button onclick="switchTab('opciones')" id="nav-opciones"
             class="flex flex-col items-center gap-1 text-slate-500">
             <i id="nav-opciones-icon" class="fas fa-sliders-h text-xl"></i>
-            <span id="nav-opciones-text" class="text-[10px] font-black uppercase tracking-wider hidden">Ajustes</span>
+            <span id="nav-opciones-text" class="text-[10px] font-black uppercase tracking-wider hidden"
+                data-i18n="shared.ajustes">Ajustes</span>
         </button>
     </nav>
 
     <div id="modal-trip"
         class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-6 z-50">
         <div class="card-dark w-full max-w-sm p-8 rounded-[2.5rem] space-y-6 border border-slate-700">
-            <h3 class="text-center font-black italic text-indigo-400 uppercase" data-i18n="modal_title_trip">Nuevo Viaje
+            <h3 class="text-center font-black italic text-indigo-400 uppercase" data-i18n="flexible.nuevo_viaje">Nuevo
+                Viaje
             </h3>
             <div class="space-y-6 text-left">
                 <div>
                     <label class="text-[9px] font-black text-slate-500 uppercase ml-2 mb-3 block"
-                        data-i18n="label_type">Trayecto</label>
+                        data-i18n="flexible.trayecto">Trayecto</label>
                     <div class="grid grid-cols-3 gap-2">
                         <button type="button" class="btn-selector active" onclick="selectTripType('ida_vuelta', event)"
-                            data-i18n="type_ida_vuelta">Ida y Vuelta</button>
+                            data-i18n="flexible.tipo_ida_vuelta">Ida y Vuelta</button>
                         <button type="button" class="btn-selector" onclick="selectTripType('ida', event)"
-                            data-i18n="type_ida">Solo
+                            data-i18n="flexible.tipo_ida">Solo
                             Ida</button>
                         <button type="button" class="btn-selector" onclick="selectTripType('vuelta', event)"
-                            data-i18n="type_vuelta">Solo
+                            data-i18n="flexible.tipo_vuelta">Solo
                             Vuelta</button>
                     </div>
                 </div>
                 <div>
                     <label class="text-[9px] font-black text-slate-500 uppercase ml-2 mb-3 block"
-                        data-i18n="label_repeat">Repetición</label>
+                        data-i18n="flexible.repeticion">Repetición</label>
                     <div class="grid grid-cols-3 gap-2">
                         <button type="button" class="btn-selector active" onclick="selectTripRepeat(0, event)"
-                            data-i18n="repeat_none">Solo
+                            data-i18n="flexible.solo_hoy">Solo
                             hoy</button>
                         <button type="button" class="btn-selector" onclick="selectTripRepeat(4, event)"
-                            data-i18n="repeat_4">4
+                            data-i18n="flexible.4_semanas">4
                             semanas</button>
                         <button type="button" class="btn-selector" onclick="selectTripRepeat(12, event)"
-                            data-i18n="repeat_12">12
+                            data-i18n="flexible.12_semanas">12
                             semanas</button>
                     </div>
                 </div>
             </div>
             <div class="flex gap-3 pt-2">
                 <button onclick="closeTripModal()" class="flex-1 text-xs font-bold text-slate-500 uppercase"
-                    data-i18n="btn_cancel">Cancelar</button>
+                    data-i18n="shared.cancelar">Cancelar</button>
                 <button id="btn-confirm-trip" onclick="confirmTripCreation()"
                     class="flex-1 bg-indigo-600 py-4 rounded-2xl font-black text-xs uppercase shadow-lg shadow-indigo-600/30"
-                    data-i18n="btn_create">Crear</button>
+                    data-i18n="shared.crear">Crear</button>
             </div>
         </div>
     </div>
@@ -416,39 +600,203 @@
     <div id="modal-manage-groups"
         class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-6 z-50">
         <div class="card-dark w-full max-w-sm p-8 rounded-[2.5rem] space-y-6 border border-slate-700">
-            <h3 class="text-center font-black italic text-indigo-400 uppercase" data-i18n="modal_title_manage">Mis
+            <h3 class="text-center font-black italic text-indigo-400 uppercase" data-i18n="shared.mis_grupos">Mis
                 Grupos</h3>
             <div id="list-manage-groups" class="space-y-3 max-h-64 overflow-y-auto pr-2">
                 <!-- Groups to leave will be listed here -->
             </div>
             <div class="pt-2">
                 <button onclick="closeManageGroupsModal()"
-                    class="w-full py-4 text-xs font-bold text-slate-500 uppercase" data-i18n="btn_close">Cerrar</button>
+                    class="w-full py-4 text-xs font-bold text-slate-500 uppercase"
+                    data-i18n="shared.cerrar">Cerrar</button>
             </div>
         </div>
     </div>
 
     <!-- Modal de Confirmación Personalizado -->
     <div id="modal-confirm"
-        class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-6 z-[100]">
+        class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-6 z-[200]">
         <div class="card-dark w-full max-w-sm p-8 rounded-[2.5rem] space-y-6 border border-slate-700 text-center">
             <i id="confirm-icon" class="fas fa-question-circle text-4xl text-indigo-500"></i>
             <p id="confirm-text" class="text-sm font-bold text-slate-200"></p>
             <div class="flex gap-3 pt-2">
                 <button id="confirm-cancel" class="flex-1 text-xs font-bold text-slate-500 uppercase"
-                    data-i18n="btn_cancel">Utzi</button>
+                    data-i18n="shared.cancelar">Cancelar</button>
                 <button id="confirm-ok"
                     class="flex-1 bg-indigo-600 py-4 rounded-2xl font-black text-xs uppercase shadow-lg shadow-indigo-600/30"
-                    data-i18n="btn_confirm">Confirmar</button>
+                    data-i18n="shared.confirmar">Confirmar</button>
             </div>
         </div>
     </div>
 
-    <script src="js/config.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/app.js"></script>
+    <!-- Shared modules -->
+    <!-- MODALES FIXED (From GidApp) -->
+    <div id="modal-viaje"
+        class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-6">
+        <div class="card-dark w-full max-w-sm p-6 space-y-4">
+            <div class="text-center">
+                <h3 id="modal-date-title" class="font-black italic uppercase text-indigo-400"></h3>
+                <p id="modal-type-subtitle" class="text-[10px] text-slate-500 uppercase">Gestión de trayecto</p>
+            </div>
+
+            <div id="pasajeros-list" class="hidden"></div>
+
+            <div id="setup-actions" class="grid grid-cols-1 gap-2">
+                <button id="btn-crear-puntual" onclick="configurarViaje('single')"
+                    class="w-full bg-amber-600/20 text-amber-500 border border-amber-500/30 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-amber-600 hover:text-white transition-all"
+                    data-i18n="fixed.viaje_puntual">Crear Viaje Puntual</button>
+
+                <button id="btn-crear-rutina" onclick="configurarViaje('shared')"
+                    class="w-full bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-indigo-600 hover:text-white transition-all"
+                    data-i18n="fixed.configurar_rutina">Configurar Rutina</button>
+            </div>
+
+            <div id="status-actions" class="hidden flex flex-col gap-2">
+                <button id="btn-relevar" onclick="tomarRelevo()"
+                    class="hidden w-full bg-emerald-600 py-3 rounded-xl font-bold uppercase text-[10px] text-white"
+                    data-i18n="fixed.tomar_relevo">Tomar Relevo</button>
+
+                <button id="btn-unirse-puntual"
+                    class="hidden w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-black uppercase text-[10px] flex items-center justify-center gap-2 transition-colors"
+                    data-i18n="fixed.unirse_al_viaje">Unirse</button>
+
+                <button id="btn-bajarse-viaje"
+                    class="hidden w-full bg-orange-600/20 text-orange-400 border border-orange-500/30 py-3 rounded-xl font-bold uppercase text-[10px]"
+                    data-i18n="fixed.bajarse_viaje">Bajarse</button>
+
+                <button id="btn-eliminar-viaje"
+                    class="hidden w-full bg-red-600/20 text-red-400 border border-red-500/30 py-3 rounded-xl font-bold uppercase text-[10px]"
+                    data-i18n="fixed.eliminar_viaje">Eliminar Viaje</button>
+
+                <button id="btn-pedir-relevo"
+                    class="hidden w-full bg-amber-600 py-3 rounded-xl font-bold uppercase text-[10px] text-white"
+                    data-i18n="fixed.no_puedo_conducir">No puedo conducir</button>
+
+                <button id="btn-canjear-deuda"
+                    class="hidden w-full bg-indigo-600 py-3 rounded-xl font-bold uppercase text-[10px] text-white"
+                    data-i18n="fixed.canjear_deuda">Canjear Deuda</button>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="btn-festivo"
+                        class="bg-red-900/40 text-red-400 border border-red-500/30 py-3 rounded-xl font-bold uppercase text-[10px]"
+                        data-i18n="fixed.festivo">Festivo</button>
+                    <button id="btn-nadie"
+                        class="bg-slate-800 text-slate-400 border border-slate-700 py-3 rounded-xl font-bold uppercase text-[10px]"
+                        data-i18n="fixed.nadie_va">Nadie va</button>
+                </div>
+            </div>
+
+            <button onclick="cerrarModal()"
+                class="w-full py-2 text-slate-500 text-[10px] uppercase font-bold text-center"
+                data-i18n="shared.cerrar">Cerrar</button>
+        </div>
+    </div>
+
+    <div id="modal-config-rutina"
+        class="hidden fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-[110] p-4">
+        <div class="card-dark w-full max-w-sm p-6 space-y-6 border-indigo-500">
+            <h3 class="font-black italic uppercase text-indigo-400 text-center" data-i18n="fixed.dias_viaje">Días de
+                Viaje</h3>
+            <div class="flex justify-around" id="days-selector">
+                <button onclick="toggleDay(1)" class="day-btn-pill" data-day="1">L/A</button>
+                <button onclick="toggleDay(2)" class="day-btn-pill" data-day="2">M/A</button>
+                <button onclick="toggleDay(3)" class="day-btn-pill" data-day="3">X/A</button>
+                <button onclick="toggleDay(4)" class="day-btn-pill" data-day="4">J/O</button>
+                <button onclick="toggleDay(5)" class="day-btn-pill" data-day="5">V/O</button>
+            </div>
+            <div id="order-setup-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
+
+            <div class="space-y-2 pt-2 border-t border-slate-700">
+                <label class="text-[10px] uppercase font-bold text-slate-500 ml-2"
+                    data-i18n="fixed.consecutivos">Consecutivos</label>
+                <input type="number" id="consectuvios-input" value="2" min="1" max="10"
+                    class="w-full p-3 bg-slate-900 rounded-xl border-none text-white text-center font-bold text-lg">
+            </div>
+
+            <button onclick="guardarConfiguracionMaestra()"
+                class="w-full bg-indigo-600 py-4 rounded-xl font-black uppercase text-xs"
+                data-i18n="fixed.confirmar_rutina">Confirmar</button>
+            <button onclick="cerrarModal()" class="w-full text-slate-500 text-[10px] uppercase font-bold text-center"
+                data-i18n="shared.volver">Volver</button>
+        </div>
+    </div>
+
+    <div id="modal-deudas"
+        class="hidden fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[120] p-6">
+        <div class="card-dark w-full max-w-sm p-6 space-y-4">
+            <h3 class="font-black italic uppercase text-indigo-400 text-center" data-i18n="fixed.viajes_pendientes">
+                Viajes Pendientes</h3>
+            <div id="deudas-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+            <button onclick="document.getElementById('modal-deudas').classList.add('hidden')"
+                class="w-full text-slate-500 text-[10px] uppercase font-bold py-2"
+                data-i18n="shared.cerrar">Cerrar</button>
+        </div>
+    </div>
+
+    <div id="modal-crear-deuda"
+        class="hidden fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[120] p-6">
+        <div class="card-dark w-full max-w-sm p-6 space-y-4">
+            <h3 class="font-black italic uppercase text-emerald-400 text-center" data-i18n="fixed.crear_deuda">Crear
+                Deuda</h3>
+            <p class="text-[10px] text-slate-400 text-center uppercase" data-i18n="fixed.quien_te_debe">¿Quién te debe?
+            </p>
+            <div id="crear-deuda-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+            <button onclick="document.getElementById('modal-crear-deuda').classList.add('hidden')"
+                class="w-full text-slate-500 text-[10px] uppercase font-bold py-2"
+                data-i18n="shared.cerrar">Cerrar</button>
+        </div>
+    </div>
+
+    <div id="modal-tabla-deudas"
+        class="hidden fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[120] p-6">
+        <div class="card-dark w-full max-w-lg p-6 space-y-4">
+            <h3 class="font-black italic uppercase text-amber-400 text-center" data-i18n="fixed.tabla_deudas">Tabla de
+                Deudas</h3>
+            <div id="tabla-deudas-container" class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-700">
+                            <th class="text-left py-3 px-2 text-[10px] uppercase font-black text-slate-400"
+                                data-i18n="fixed.acreedor">Acreedor</th>
+                            <th class="text-left py-3 px-2 text-[10px] uppercase font-black text-slate-400"
+                                data-i18n="fixed.deudor">Deudor</th>
+                            <th class="text-center py-3 px-2 text-[10px] uppercase font-black text-slate-400"
+                                data-i18n="fixed.cantidad">Cant.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-deudas-body">
+                    </tbody>
+                </table>
+            </div>
+            <button onclick="document.getElementById('modal-tabla-deudas').classList.add('hidden')"
+                class="w-full text-slate-500 text-[10px] uppercase font-bold py-2"
+                data-i18n="shared.cerrar">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="js/shared/config.js"></script>
+    <script src="js/shared/i18n.js"></script>
+    <script src="js/shared/utils.js"></script>
+    <script src="js/shared/router.js"></script>
+
+    <!-- Flexible modules -->
+    <script src="js/flexible/api.js"></script>
+    <script src="js/flexible/ui.js"></script>
+
+    <!-- Fixed modules -->
+    <script src="js/fixed/config.js"></script>
+    <script src="js/fixed/groups.js"></script>
+    <script src="js/fixed/calendar.js"></script>
+    <script src="js/fixed/trips.js"></script>
+    <script src="js/fixed/debts.js"></script>
+    <script src="js/fixed/modals.js"></script>
+    <script src="js/fixed/profile.js"></script>
+    <script src="js/fixed/utils.js"></script>
+
+    <!-- App initialization (must be last) -->
+    <script src="js/shared/app.js"></script>
+
 </body>
 
 </html>
