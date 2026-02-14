@@ -33,7 +33,7 @@ async function renderFixedCalendar() {
         let driverId = trip?.effective_id !== undefined ? trip.effective_id : defaultDriverId;
 
         const cell = document.createElement('div');
-        cell.className = `fixed-day-cell ${isPast ? 'past' : ''} ${isToday ? 'today' : ''} flex flex-col items-center justify-center relative`;
+        cell.className = `fixed-day-cell ${isPast ? 'fixed-day-past' : ''} ${isToday ? 'today' : ''} flex flex-col items-center justify-center relative`;
 
         if (trip?.status === 'holiday') {
             cell.style.backgroundColor = '#7f1d1d';
