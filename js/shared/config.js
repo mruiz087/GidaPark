@@ -5,7 +5,8 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // Group types
 const GROUP_TYPES = {
     FLEXIBLE: 'flexible',
-    FIXED: 'fixed'
+    FIXED: 'fixed',
+    PARKING: 'parking'
 };
 
 // Global State

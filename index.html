@@ -284,6 +284,26 @@
             border-color: #6366f1 !important;
             box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
         }
+
+        .day-btn-pill {
+            padding: 8px 4px;
+            border-radius: 12px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 900;
+            transition: all 0.2s;
+            flex: 1;
+            text-align: center;
+        }
+
+        .day-btn-pill.active {
+            background: #10b981;
+            border-color: #34d399;
+            color: white;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+        }
     </style>
 </head>
 
@@ -317,14 +337,18 @@
                 <div class="space-y-2">
                     <label class="text-[9px] font-black text-slate-500 uppercase ml-2 block"
                         data-i18n="group_type.select">Tipo de grupo</label>
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="grid grid-cols-3 gap-2">
                         <button type="button" class="btn-selector active" id="type-flexible"
                             onclick="selectGroupType('flexible', event)">
-                            <span data-i18n="group_type.flexible">🔄 Flexible</span>
+                            <span data-i18n="group_type.flexible">🔄 Carpool flexible</span>
                         </button>
                         <button type="button" class="btn-selector" id="type-fixed"
                             onclick="selectGroupType('fixed', event)">
-                            <span data-i18n="group_type.fixed">📅 Fijo</span>
+                            <span data-i18n="group_type.fixed">📅 Carpool fijo</span>
+                        </button>
+                        <button type="button" class="btn-selector" id="type-parking"
+                            onclick="selectGroupType('parking', event)">
+                            <span data-i18n="group_type.parking">🅿️ Plazas parking</span>
                         </button>
                     </div>
                 </div>
@@ -431,6 +455,76 @@
                     <!-- Members will be rendered here -->
                 </div>
             </div>
+
+            <!-- VISTA DETALLE PARKING -->
+            <div id="view-group-detail-parking" class="hidden space-y-4">
+                <div class="flex items-center justify-between">
+                    <button onclick="hideGroupDetail()" class="text-[10px] font-black text-slate-500 uppercase"><i
+                            class="fas fa-arrow-left mr-1"></i> <span data-i18n="shared.volver">Volver</span></button>
+                    <div class="flex gap-4">
+                        <span id="label-group-name-parking"
+                            class="text-[10px] font-black text-emerald-500 italic uppercase tracking-widest">Parking</span>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center px-2 mb-2">
+                    <button onclick="changeWeek(-1)" class="p-2 text-slate-400"><i
+                            class="fas fa-chevron-left"></i></button>
+                    <div class="text-center">
+                        <h3 id="parking-month-year"
+                            class="font-black uppercase italic text-white text-sm tracking-widest">
+                        </h3>
+                        <p id="parking-group-title"
+                            class="text-[9px] text-emerald-400 font-bold uppercase tracking-widest opacity-80"></p>
+                    </div>
+                    <button onclick="changeWeek(1)" class="p-2 text-slate-400"><i
+                            class="fas fa-chevron-right"></i></button>
+                </div>
+
+                <!-- PARKING CALENDAR/LIST VIEW -->
+                <div class="card-dark p-4">
+                    <!-- Header for days -->
+                    <div class="grid grid-cols-7 gap-2 text-[8px] text-slate-500 font-black uppercase text-center mb-2">
+                        <div>LU</div>
+                        <div>MA</div>
+                        <div>MI</div>
+                        <div>JU</div>
+                        <div>VI</div>
+                        <div>SA</div>
+                        <div>DO</div>
+                    </div>
+                    <div id="parking-calendar-grid" class="grid grid-cols-7 gap-2"></div>
+
+                    <div id="parking-legend" class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-slate-700">
+                        <!-- Filled by JS -->
+                    </div>
+
+                    <div class="mt-8 px-4 pb-4 space-y-3">
+                        <button onclick="refreshParkingData()"
+                            class="w-full p-4 rounded-2xl bg-emerald-900/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-900/40 transition-all"
+                            data-i18n="shared.refrescar">Refrescar</button>
+
+                        <button onclick="window.openParkingMembersModal()"
+                            class="w-full p-4 rounded-2xl bg-indigo-900/20 border border-indigo-500/30 text-indigo-400 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-900/40 transition-all">
+                            <i class="fas fa-users mr-1"></i> Miembros
+                        </button>
+
+                        <button onclick="window.openRoutineModal()"
+                            class="w-full p-4 rounded-2xl bg-amber-900/20 border border-amber-500/30 text-amber-400 text-[10px] font-black uppercase tracking-widest hover:bg-amber-900/40 transition-all">
+                            <i class="fas fa-calendar-alt mr-1"></i> Mi Rutina
+                        </button>
+
+                        <button onclick="window.openSpotManagementModal()"
+                            class="w-full p-4 rounded-2xl bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-black uppercase tracking-widest hover:bg-slate-700 transition-all">
+                            Gestionar Plazas
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+
+
+
 
             <!-- VISTA DETALLE GRUPO FIJO (From GidApp) -->
             <div id="view-group-detail-fixed" class="hidden space-y-4">
@@ -793,6 +887,127 @@
     <script src="js/fixed/modals.js"></script>
     <script src="js/fixed/profile.js"></script>
     <script src="js/fixed/utils.js"></script>
+
+    <!-- MODAL GESTION PLAZAS -->
+    <div id="modal-manage-spots" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeSpotManagementModal()"></div>
+        <div
+            class="relative w-full max-w-sm bg-[#1e293b] rounded-[2rem] p-8 border border-slate-700 shadow-2xl space-y-6">
+            <h3 class="text-xl font-black italic text-center text-white">Gestionar Plazas</h3>
+
+            <div class="space-y-4">
+                <div class="flex gap-2">
+                    <input type="text" id="new-spot-name" placeholder="Nombre (ej. Sótano 1)"
+                        class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:border-emerald-500 outline-none">
+                    <button onclick="handleAddSpot()"
+                        class="bg-emerald-500 text-white w-12 rounded-xl flex items-center justify-center hover:bg-emerald-600 transition-all">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+
+                <div id="spots-list" class="space-y-2 max-h-60 overflow-y-auto">
+                    <!-- JS fills this -->
+                </div>
+            </div>
+
+            <button onclick="closeSpotManagementModal()"
+                class="w-full py-4 bg-slate-800 rounded-xl text-slate-400 font-bold uppercase text-xs">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- MODAL DETALLE DIA (ASSIGNMENTS) -->
+    <div id="modal-parking-day-detail" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeParkingDayDetail()"></div>
+        <div
+            class="relative w-full max-w-sm bg-[#1e293b] rounded-[2rem] p-8 border border-slate-700 shadow-2xl space-y-6">
+            <div class="text-center">
+                <h3 id="parking-detail-date" class="text-xl font-black italic text-white">Fecha</h3>
+                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">Asignación de plazas</p>
+            </div>
+
+            <!-- Daily Attendance Toggle -->
+            <div class="flex items-center justify-between bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-parking text-emerald-500"></i>
+                    <span class="text-xs font-black uppercase text-slate-300">¿Voy a aparcar hoy?</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="check-parking-attendance" class="sr-only peer"
+                        onchange="window.handleToggleAttendance()">
+                    <div
+                        class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500">
+                    </div>
+                </label>
+            </div>
+
+            <div id="parking-assignments-list" class="space-y-3 max-h-[60vh] overflow-y-auto">
+                <!-- JS fills this -->
+            </div>
+
+            <button onclick="closeParkingDayDetail()"
+                class="w-full py-4 bg-slate-800 rounded-xl text-slate-400 font-bold uppercase text-xs">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- MODAL RUTINA SEMANAL -->
+    <div id="modal-parking-routine" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="window.closeRoutineModal()"></div>
+        <div
+            class="relative w-full max-w-sm bg-[#1e293b] rounded-[2rem] p-8 border border-slate-700 shadow-2xl space-y-6">
+            <div class="text-center">
+                <h3 class="text-xl font-black italic text-white">Mi Rutina Semanal</h3>
+                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">Días que sueles aparcar
+                </p>
+            </div>
+
+            <div class="flex justify-between gap-1">
+                <button class="day-btn-pill" data-day="1" onclick="window.toggleRoutineDay(1)">LU</button>
+                <button class="day-btn-pill" data-day="2" onclick="window.toggleRoutineDay(2)">MA</button>
+                <button class="day-btn-pill" data-day="3" onclick="window.toggleRoutineDay(3)">MI</button>
+                <button class="day-btn-pill" data-day="4" onclick="window.toggleRoutineDay(4)">JU</button>
+                <button class="day-btn-pill" data-day="5" onclick="window.toggleRoutineDay(5)">VI</button>
+                <button class="day-btn-pill" data-day="6" onclick="window.toggleRoutineDay(6)">SA</button>
+                <button class="day-btn-pill" data-day="7" onclick="window.toggleRoutineDay(7)">DO</button>
+            </div>
+
+            <div class="bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl">
+                <p class="text-[10px] text-indigo-300 font-bold leading-relaxed">
+                    <i class="fas fa-info-circle mr-1"></i> Estos días se marcarán como "asistencia" por defecto.
+                    Siempre podrás cambiarlo para un día concreto.
+                </p>
+            </div>
+
+            <button onclick="window.saveRoutine()" id="btn-save-routine"
+                class="w-full py-4 bg-emerald-600 rounded-xl text-white font-black uppercase text-xs tracking-widest shadow-lg shadow-emerald-500/20">
+                Guardar Rutina
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL MIEMBROS PARKING -->
+    <div id="modal-parking-members" class="fixed inset-0 z-[200] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="window.closeParkingMembersModal()"></div>
+        <div
+            class="relative w-full max-w-sm bg-[#1e293b] rounded-[2rem] p-8 border border-slate-700 shadow-2xl space-y-6">
+            <div class="text-center">
+                <h3 class="text-xl font-black italic text-white uppercase">Miembros del Grupo</h3>
+                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">Lista general de
+                    participantes</p>
+            </div>
+
+            <div id="parking-members-list-general" class="space-y-3 max-h-[60vh] overflow-y-auto">
+                <!-- JS fills this -->
+            </div>
+
+            <button onclick="window.closeParkingMembersModal()"
+                class="w-full py-4 bg-slate-800 rounded-xl text-slate-400 font-bold uppercase text-xs">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Parking modules -->
+    <script src="js/parking/logic.js"></script>
+    <script src="js/parking/groups.js"></script>
+    <script src="js/parking/ui.js"></script>
 
     <!-- App initialization (must be last) -->
     <script src="js/shared/app.js"></script>

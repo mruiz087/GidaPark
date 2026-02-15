@@ -16,7 +16,10 @@ const assets = [
     'js/fixed/debts.js',
     'js/fixed/modals.js',
     'js/fixed/profile.js',
-    'js/fixed/utils.js'
+    'js/fixed/utils.js',
+    'js/parking/logic.js',
+    'js/parking/groups.js',
+    'js/parking/ui.js'
 ];
 
 // INSTALACIÓN: Descarga los nuevos archivos

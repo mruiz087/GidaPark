@@ -2,9 +2,19 @@
 
 function hideGroupDetail() {
     document.getElementById('view-groups-list').classList.remove('hidden');
-    document.getElementById('view-group-detail').classList.add('hidden');
-    document.getElementById('view-group-detail-fixed')?.classList.add('hidden');
-    document.getElementById('view-group-members').classList.add('hidden');
+
+    const views = [
+        'view-group-detail',
+        'view-group-detail-fixed',
+        'view-group-detail-parking',
+        'view-group-members'
+    ];
+
+    views.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
+
     selectedDate = null;
 }
 

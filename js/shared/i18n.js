@@ -34,8 +34,9 @@ const translations = {
         'shared.toast_name_saved': 'Nombre guardado',
 
         // ===== GROUP TYPES =====
-        'group_type.flexible': '🔄 Flexible',
-        'group_type.fixed': '📅 Fijo',
+        'group_type.flexible': '🔄 Carpool flexible',
+        'group_type.fixed': '📅 Carpool fijo',
+        'group_type.parking': '🅿️ Plazas parking',
         'group_type.select': 'Tipo de grupo',
 
         // ===== FLEXIBLE =====
@@ -186,6 +187,7 @@ const translations = {
         // ===== GROUP TYPES =====
         'group_type.flexible': '🔄 Malgua',
         'group_type.fixed': '📅 Finkoa',
+        'group_type.parking': '🅿️ Parking',
         'group_type.select': 'Talde mota',
 
         // ===== FLEXIBLE =====

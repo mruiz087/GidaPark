@@ -66,6 +66,11 @@ async function createGroup() {
         });
     } else if (type === 'fixed') {
         await createFixedGroupMember(newGroup.id);
+    } else if (type === 'parking') {
+        // Automatically join as first member
+        if (window.joinParkingGroup) {
+            await window.joinParkingGroup(newGroup.id);
+        }
     }
 
     document.getElementById('new-group-name').value = '';
@@ -94,8 +99,17 @@ async function joinGroup() {
         }
 
         // Check membership based on group type
-        const schema = g.type === 'flexible' ? 'flexible_carpooling' : 'fixed_carpooling';
-        const table = g.type === 'flexible' ? 'flexible_members' : 'fixed_members';
+        let schema, table;
+        if (g.type === 'flexible') {
+            schema = 'flexible_carpooling';
+            table = 'flexible_members';
+        } else if (g.type === 'fixed') {
+            schema = 'fixed_carpooling';
+            table = 'fixed_members';
+        } else if (g.type === 'parking') {
+            schema = 'parking';
+            table = 'members';
+        }
 
         const { data: memberCheck } = await _supabase.schema(schema).from(table)
             .select('id')
@@ -114,10 +128,14 @@ async function joinGroup() {
             await _supabase.schema('flexible_carpooling').from('flexible_members').insert([
                 { group_id: g.id, user_id: user.id, user_email: user.email, aporta_coche: true }
             ]);
-        } else {
+        } else if (g.type === 'fixed') {
             // Call fixed join function
             if (window.joinFixedGroup) {
                 await window.joinFixedGroup(g.id);
+            }
+        } else if (g.type === 'parking') {
+            if (window.joinParkingGroup) {
+                await window.joinParkingGroup(g.id);
             }
         }
 

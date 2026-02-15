@@ -31,6 +31,8 @@ async function loadGroupDetail(groupId) {
         await loadFlexibleGroupDetail(groupId, group.name);
     } else if (group.type === GROUP_TYPES.FIXED) {
         await loadFixedGroupDetail(groupId, group.name);
+    } else if (group.type === GROUP_TYPES.PARKING) {
+        await loadParkingGroupDetail(groupId, group.name);
     }
 }
 
@@ -50,9 +52,16 @@ async function loadAllGroups() {
         .select('group_id')
         .eq('user_id', currentUser.id);
 
+    // Load parking groups
+    const { data: parkingMembers } = await _supabase.schema('parking')
+        .from('members')
+        .select('group_id')
+        .eq('user_id', currentUser.id);
+
     const flexGroupIds = [...new Set((flexMembers || []).map(m => m.group_id))];
     const fixedGroupIds = [...new Set((fixedMembers || []).map(m => m.group_id))];
-    const allGroupIds = [...flexGroupIds, ...fixedGroupIds];
+    const parkingGroupIds = [...new Set((parkingMembers || []).map(m => m.group_id))];
+    const allGroupIds = [...flexGroupIds, ...fixedGroupIds, ...parkingGroupIds];
 
     if (allGroupIds.length === 0) {
         document.getElementById('html-groups-list').innerHTML = `<p class="text-slate-500 text-xs uppercase font-bold pt-4">${t('shared.no_grupos')}</p>`;
@@ -71,11 +80,11 @@ async function loadAllGroups() {
     const groups = groupData || [];
 
     document.getElementById('html-groups-list').innerHTML = groups.map(g => `
-        <div onclick="loadGroupDetail('${g.id}')" class="p-6 card-dark rounded-3xl cursor-pointer border-l-8 ${g.type === 'flexible' ? 'border-indigo-600' : 'border-amber-600'} shadow-md">
+        <div onclick="loadGroupDetail('${g.id}')" class="p-6 card-dark rounded-3xl cursor-pointer border-l-8 ${g.type === 'flexible' ? 'border-indigo-600' : g.type === 'fixed' ? 'border-amber-600' : 'border-emerald-600'} shadow-md">
             <div class="flex justify-between items-center">
                 <div class="flex flex-col gap-2 items-start text-left">
                     <div class="flex items-center gap-2">
-                        <span class="text-[9px] font-black ${g.type === 'flexible' ? 'text-indigo-400' : 'text-amber-400'}">${t('group_type.' + g.type)}</span>
+                        <span class="text-[9px] font-black ${g.type === 'flexible' ? 'text-indigo-400' : g.type === 'fixed' ? 'text-amber-400' : 'text-emerald-400'}">${t('group_type.' + g.type)}</span>
                     </div>
                     <span class="font-black text-sm uppercase italic text-slate-200">${g.name}</span>
                     <span class="text-[11px] font-bold text-white tracking-widest bg-slate-900 w-24 py-1.5 rounded-lg inline-block text-center">${g.code}</span>
