@@ -69,7 +69,14 @@ async function createGroup() {
     } else if (type === 'parking') {
         // Automatically join as first member
         if (window.joinParkingGroup) {
-            await window.joinParkingGroup(newGroup.id);
+            try {
+                await window.joinParkingGroup(newGroup.id);
+            } catch (err) {
+                console.error("Error joining parking group after creation:", err);
+                showToast("Error al unirse al grupo de parking", "error");
+            }
+        } else {
+            console.error("joinParkingGroup is not defined on window object");
         }
     }
 
@@ -135,7 +142,17 @@ async function joinGroup() {
             }
         } else if (g.type === 'parking') {
             if (window.joinParkingGroup) {
-                await window.joinParkingGroup(g.id);
+                try {
+                    console.log("Attempting to join parking group:", g.id);
+                    await window.joinParkingGroup(g.id);
+                } catch (err) {
+                    console.error("Join parking catch:", err);
+                    showToast("Error Supabase al unirse", "error");
+                    return;
+                }
+            } else {
+                showToast("Módulo de parking no cargado", "error");
+                return;
             }
         }
 

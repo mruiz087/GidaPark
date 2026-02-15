@@ -53,14 +53,23 @@ async function loadAllGroups() {
         .eq('user_id', currentUser.id);
 
     // Load parking groups
-    const { data: parkingMembers } = await _supabase.schema('parking')
+    const { data: parkingMembers, error: parkingErr } = await _supabase.schema('parking')
         .from('members')
         .select('group_id')
         .eq('user_id', currentUser.id);
 
+    if (parkingErr) console.warn("Error fetching parking groups:", parkingErr);
+
     const flexGroupIds = [...new Set((flexMembers || []).map(m => m.group_id))];
     const fixedGroupIds = [...new Set((fixedMembers || []).map(m => m.group_id))];
     const parkingGroupIds = [...new Set((parkingMembers || []).map(m => m.group_id))];
+
+    if (parkingGroupIds.length > 0) {
+        console.log("DEBUG: Found parking groups:", parkingGroupIds);
+    }
+
+    console.log("Found group IDs:", { flexible: flexGroupIds, fixed: fixedGroupIds, parking: parkingGroupIds });
+
     const allGroupIds = [...flexGroupIds, ...fixedGroupIds, ...parkingGroupIds];
 
     if (allGroupIds.length === 0) {

@@ -463,7 +463,8 @@
                             class="fas fa-arrow-left mr-1"></i> <span data-i18n="shared.volver">Volver</span></button>
                     <div class="flex gap-4">
                         <span id="label-group-name-parking"
-                            class="text-[10px] font-black text-emerald-500 italic uppercase tracking-widest">Parking</span>
+                            class="text-[10px] font-black text-emerald-500 italic uppercase tracking-widest"
+                            data-i18n="parking.title">Plazas parking</span>
                     </div>
                 </div>
 
@@ -483,16 +484,6 @@
 
                 <!-- PARKING CALENDAR/LIST VIEW -->
                 <div class="card-dark p-4">
-                    <!-- Header for days -->
-                    <div class="grid grid-cols-7 gap-2 text-[8px] text-slate-500 font-black uppercase text-center mb-2">
-                        <div>LU</div>
-                        <div>MA</div>
-                        <div>MI</div>
-                        <div>JU</div>
-                        <div>VI</div>
-                        <div>SA</div>
-                        <div>DO</div>
-                    </div>
                     <div id="parking-calendar-grid" class="grid grid-cols-7 gap-2"></div>
 
                     <div id="parking-legend" class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-slate-700">
@@ -505,17 +496,20 @@
                             data-i18n="shared.refrescar">Refrescar</button>
 
                         <button onclick="window.openParkingMembersModal()"
-                            class="w-full p-4 rounded-2xl bg-indigo-900/20 border border-indigo-500/30 text-indigo-400 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-900/40 transition-all">
+                            class="w-full p-4 rounded-2xl bg-indigo-900/20 border border-indigo-500/30 text-indigo-400 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-900/40 transition-all"
+                            data-i18n="parking.miembros">
                             <i class="fas fa-users mr-1"></i> Miembros
                         </button>
 
                         <button onclick="window.openRoutineModal()"
-                            class="w-full p-4 rounded-2xl bg-amber-900/20 border border-amber-500/30 text-amber-400 text-[10px] font-black uppercase tracking-widest hover:bg-amber-900/40 transition-all">
+                            class="w-full p-4 rounded-2xl bg-amber-900/20 border border-amber-500/30 text-amber-400 text-[10px] font-black uppercase tracking-widest hover:bg-amber-900/40 transition-all"
+                            data-i18n="parking.mi_rutina">
                             <i class="fas fa-calendar-alt mr-1"></i> Mi Rutina
                         </button>
 
                         <button onclick="window.openSpotManagementModal()"
-                            class="w-full p-4 rounded-2xl bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-black uppercase tracking-widest hover:bg-slate-700 transition-all">
+                            class="w-full p-4 rounded-2xl bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-black uppercase tracking-widest hover:bg-slate-700 transition-all"
+                            data-i18n="parking.gestionar_plazas">
                             Gestionar Plazas
                         </button>
                     </div>
@@ -550,13 +544,13 @@
                 </div>
                 <div class="card-dark p-4">
                     <div class="grid grid-cols-7 gap-2 text-[8px] text-slate-500 font-black uppercase text-center mb-2">
-                        <div>DO</div>
                         <div>LU</div>
                         <div>MA</div>
                         <div>MI</div>
                         <div>JU</div>
                         <div>VI</div>
                         <div>SA</div>
+                        <div>DO</div>
                     </div>
                     <div id="calendar-grid" class="grid grid-cols-7 gap-2"></div>
                     <div id="calendar-legend"
@@ -625,21 +619,17 @@
     </main>
 
     <nav id="nav-bar" class="nav-bar hidden">
-        <button onclick="switchTab('inicio')" id="nav-inicio" class="flex flex-col items-center gap-1 text-slate-500">
-            <i id="nav-inicio-icon" class="fas fa-compass text-xl"></i>
-            <span id="nav-inicio-text" class="text-[10px] font-black uppercase tracking-wider hidden"
-                data-i18n="shared.inicio">Inicio</span>
+        <button onclick="switchTab('inicio')" id="nav-inicio" class="nav-btn p-2 flex flex-col items-center active"><i
+                class="fas fa-plus-circle text-lg"></i><span class="text-[8px] font-black mt-1 uppercase"
+                data-i18n="shared.inicio"></span>
         </button>
-        <button onclick="switchTab('grupos')" id="nav-grupos" class="flex flex-col items-center gap-1 text-slate-500">
-            <i id="nav-grupos-icon" class="fas fa-car-side text-xl"></i>
-            <span id="nav-grupos-text" class="text-[10px] font-black uppercase tracking-wider hidden"
-                data-i18n="shared.grupos">Grupos</span>
+        <button onclick="switchTab('grupos')" id="nav-grupos" class="nav-btn p-2 flex flex-col items-center"><i
+                class="fas fa-users text-lg"></i><span class="text-[8px] font-black mt-1 uppercase"
+                data-i18n="shared.grupos"></span>
         </button>
-        <button onclick="switchTab('opciones')" id="nav-opciones"
-            class="flex flex-col items-center gap-1 text-slate-500">
-            <i id="nav-opciones-icon" class="fas fa-sliders-h text-xl"></i>
-            <span id="nav-opciones-text" class="text-[10px] font-black uppercase tracking-wider hidden"
-                data-i18n="shared.ajustes">Ajustes</span>
+        <button onclick="switchTab('opciones')" id="nav-opciones" class="nav-btn p-2 flex flex-col items-center"><i
+                class="fas fa-user-cog text-lg"></i><span class="text-[8px] font-black mt-1 uppercase"
+                data-i18n="shared.ajustes"></span>
         </button>
     </nav>
 
@@ -898,6 +888,7 @@
             <div class="space-y-4">
                 <div class="flex gap-2">
                     <input type="text" id="new-spot-name" placeholder="Nombre (ej. Sótano 1)"
+                        data-i18n="parking.placeholder_plaza"
                         class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm focus:border-emerald-500 outline-none">
                     <button onclick="handleAddSpot()"
                         class="bg-emerald-500 text-white w-12 rounded-xl flex items-center justify-center hover:bg-emerald-600 transition-all">
@@ -911,7 +902,8 @@
             </div>
 
             <button onclick="closeSpotManagementModal()"
-                class="w-full py-4 bg-slate-800 rounded-xl text-slate-400 font-bold uppercase text-xs">Cerrar</button>
+                class="w-full py-4 bg-slate-800 rounded-xl text-slate-400 font-bold uppercase text-xs"
+                data-i18n="shared.cerrar">Cerrar</button>
         </div>
     </div>
 
@@ -922,14 +914,16 @@
             class="relative w-full max-w-sm bg-[#1e293b] rounded-[2rem] p-8 border border-slate-700 shadow-2xl space-y-6">
             <div class="text-center">
                 <h3 id="parking-detail-date" class="text-xl font-black italic text-white">Fecha</h3>
-                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">Asignación de plazas</p>
+                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1"
+                    data-i18n="parking.detalle_dia">Asignación de plazas</p>
             </div>
 
             <!-- Daily Attendance Toggle -->
             <div class="flex items-center justify-between bg-slate-900/50 p-4 rounded-xl border border-slate-700">
                 <div class="flex items-center gap-3">
                     <i class="fas fa-parking text-emerald-500"></i>
-                    <span class="text-xs font-black uppercase text-slate-300">¿Voy a aparcar hoy?</span>
+                    <span class="text-xs font-black uppercase text-slate-300"
+                        data-i18n="parking.asistencia_pregunta">¿Voy a aparcar hoy?</span>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="check-parking-attendance" class="sr-only peer"
@@ -945,7 +939,8 @@
             </div>
 
             <button onclick="closeParkingDayDetail()"
-                class="w-full py-4 bg-slate-800 rounded-xl text-slate-400 font-bold uppercase text-xs">Cerrar</button>
+                class="w-full py-4 bg-slate-800 rounded-xl text-slate-400 font-bold uppercase text-xs"
+                data-i18n="shared.cerrar">Cerrar</button>
         </div>
     </div>
 
@@ -955,8 +950,10 @@
         <div
             class="relative w-full max-w-sm bg-[#1e293b] rounded-[2rem] p-8 border border-slate-700 shadow-2xl space-y-6">
             <div class="text-center">
-                <h3 class="text-xl font-black italic text-white">Mi Rutina Semanal</h3>
-                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">Días que sueles aparcar
+                <h3 class="text-xl font-black italic text-white" data-i18n="parking.rutina_titulo">Mi Rutina Semanal
+                </h3>
+                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1"
+                    data-i18n="parking.rutina_desc">Días que sueles aparcar
                 </p>
             </div>
 
@@ -971,14 +968,15 @@
             </div>
 
             <div class="bg-indigo-900/20 border border-indigo-500/30 p-4 rounded-xl">
-                <p class="text-[10px] text-indigo-300 font-bold leading-relaxed">
+                <p class="text-[10px] text-indigo-300 font-bold leading-relaxed" data-i18n="parking.rutina_info">
                     <i class="fas fa-info-circle mr-1"></i> Estos días se marcarán como "asistencia" por defecto.
                     Siempre podrás cambiarlo para un día concreto.
                 </p>
             </div>
 
             <button onclick="window.saveRoutine()" id="btn-save-routine"
-                class="w-full py-4 bg-emerald-600 rounded-xl text-white font-black uppercase text-xs tracking-widest shadow-lg shadow-emerald-500/20">
+                class="w-full py-4 bg-emerald-600 rounded-xl text-white font-black uppercase text-xs tracking-widest shadow-lg shadow-emerald-500/20"
+                data-i18n="parking.guardar_rutina">
                 Guardar Rutina
             </button>
         </div>
@@ -990,8 +988,10 @@
         <div
             class="relative w-full max-w-sm bg-[#1e293b] rounded-[2rem] p-8 border border-slate-700 shadow-2xl space-y-6">
             <div class="text-center">
-                <h3 class="text-xl font-black italic text-white uppercase">Miembros del Grupo</h3>
-                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1">Lista general de
+                <h3 class="text-xl font-black italic text-white uppercase" data-i18n="parking.miembros_titulo">Miembros
+                    del Grupo</h3>
+                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1"
+                    data-i18n="parking.miembros_desc">Lista general de
                     participantes</p>
             </div>
 

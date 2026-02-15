@@ -8,7 +8,45 @@ window.parkingState = {
     attendance: {} // { "YYYY-MM-DD": [ { user_id, is_attending } ] }
 };
 
-// ... (joinParkingGroup stays same)
+// 1. Join Parking Group
+async function joinParkingGroup(groupId) {
+    const u = window.currentUser || window.user;
+    if (!u) {
+        console.error("joinParkingGroup Error: No user logged in");
+        return;
+    }
+
+    console.log("joinParkingGroup start for:", u.id, "target group:", groupId);
+
+    try {
+        // Get member count to assign order_index
+        const { count, error: countErr } = await _supabase.schema('parking').from('members')
+            .select('*', { count: 'exact', head: true })
+            .eq('group_id', groupId);
+
+        if (countErr) console.warn("Count error (ignorable if first member):", countErr);
+
+        const memberData = {
+            group_id: groupId,
+            user_id: u.id,
+            display_name: u.email.split('@')[0],
+            order_index: (count || 0) + 1,
+            routine: [1, 2, 3, 4, 5] // Mon-Fri by default
+        };
+
+        const { error } = await _supabase.schema('parking').from('members').insert(memberData);
+
+        if (error) {
+            console.error("Error joining parking group:", error);
+            throw error;
+        }
+
+        console.log("Successfully joined parking group:", groupId);
+    } catch (err) {
+        console.error("Exception in joinParkingGroup:", err);
+        throw err;
+    }
+}
 
 // 2. Load Parking Data
 async function loadParkingGroupDetail(groupId, groupName) {
