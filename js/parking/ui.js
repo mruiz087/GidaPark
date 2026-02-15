@@ -176,7 +176,7 @@ function openParkingDayDetail(dateIsoStr) {
     const N = window.parkingState.spots.length;
     const U = window.parkingState.members.length;
 
-    if (N === 0 || U === 0) return alert("No hay datos de parking");
+    if (N === 0 || U === 0) return alert(t('parking.no_datos'));
 
     // 1. Calculate Interests for this date
     const dayOfWeek = date.getDay() || 7; // ISO 1..7 (Mon..Sun)
@@ -199,7 +199,7 @@ function openParkingDayDetail(dateIsoStr) {
     modal.classList.remove('hidden');
 
     const options = { weekday: 'long', day: 'numeric', month: 'long' };
-    document.getElementById('parking-detail-date').innerText = date.toLocaleDateString('es-ES', options);
+    document.getElementById('parking-detail-date').innerText = date.toLocaleDateString(t('parking.lang_code'), options);
 
     // Update Toggle for current user
     const amIAttending = interests.includes(currentUser.id);
@@ -224,20 +224,19 @@ function openParkingDayDetail(dateIsoStr) {
             const pIndex = parseInt(a.slot.substring(1)) - 1;
             slotName = window.parkingState.spots[pIndex]?.name || a.slot;
         } else if (isReserve) {
-            slotName = "Reserva (" + a.slot + ")";
+            slotName = t('parking.reserva_con_slot').replace('{slot}', a.slot);
         } else {
             slotName = "-";
         }
 
-        let subText = "Desapuntado";
-        if (isSpot) subText = "Tiene Plaza";
-        if (isReserve) subText = "En Reserva";
+        let subText = t('parking.desapuntado');
+        if (isSpot) subText = t('parking.tiene_plaza');
+        if (isReserve) subText = t('parking.en_reserva');
 
         return `
             <div class="flex items-center justify-between p-4 rounded-xl ${isSpot ? 'bg-emerald-900/20 border border-emerald-500/30' : 'bg-slate-800/50 border border-slate-700'} ${isMe ? 'ring-1 ring-emerald-400' : ''} ${!isAttending ? 'opacity-50' : ''}">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm" 
-                         style="background: ${a.user.color || '#666'}">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm bg-slate-700">
                         ${a.user.display_name.substring(0, 2).toUpperCase()}
                     </div>
                     <div class="flex flex-col">
@@ -282,7 +281,7 @@ function openParkingMembersModal() {
     list.innerHTML = rotatedMembers.map((m, index) => {
         const priorityNum = index + 1;
         const isSpot = priorityNum <= N;
-        const statusText = isSpot ? "Plaza" : "Reserva";
+        const statusText = isSpot ? t('parking.plaza') : t('parking.reserva');
         const statusColor = isSpot ? "text-emerald-400" : "text-amber-400";
         const bgColor = isSpot ? "bg-emerald-900/10 border-emerald-500/20" : "bg-slate-800/50 border-slate-700";
 
@@ -293,7 +292,7 @@ function openParkingMembersModal() {
                         ${priorityNum}
                     </div>
                     <div class="flex flex-col">
-                        <span class="text-white font-bold text-sm">${m.display_name} ${m.user_id === currentUser.id ? '(Tú)' : ''}</span>
+                        <span class="text-white font-bold text-sm">${m.display_name} ${m.user_id === currentUser.id ? t('parking.tu') : ''}</span>
                         <span class="text-[9px] uppercase tracking-widest ${statusColor} font-black">${statusText}</span>
                     </div>
                 </div>
@@ -345,7 +344,7 @@ function updateRoutineUI() {
 async function saveRoutine() {
     await window.updateRoutine(selectedRoutineDays);
     closeRoutineModal();
-    showToast("Rutina guardada");
+    showToast(t('parking.toast_rutina_guardada'));
 }
 
 async function handleToggleAttendance() {
@@ -385,7 +384,7 @@ function renderSpotsList() {
     `).join('');
 
     if (window.parkingState.spots.length === 0) {
-        list.innerHTML = `<p class="text-center text-xs text-slate-500 italic py-4">No hay plazas creadas</p>`;
+        list.innerHTML = `<p class="text-center text-xs text-slate-500 italic py-4">${t('parking.no_plazas_creadas')}</p>`;
     }
 }
 

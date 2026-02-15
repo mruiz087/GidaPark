@@ -226,9 +226,16 @@ async function renderManageGroups() {
         .select('group_id')
         .eq('user_id', user.id);
 
+    // Load parking groups
+    const { data: parkingMembers } = await _supabase.schema('parking')
+        .from('members')
+        .select('group_id')
+        .eq('user_id', user.id);
+
     const flexIds = (flexMembers || []).map(m => m.group_id);
     const fixedIds = (fixedMembers || []).map(m => m.group_id);
-    const allIds = [...new Set([...flexIds, ...fixedIds])];
+    const parkingIds = (parkingMembers || []).map(m => m.group_id);
+    const allIds = [...new Set([...flexIds, ...fixedIds, ...parkingIds])];
 
     const container = document.getElementById('list-manage-groups');
 
@@ -248,7 +255,7 @@ async function renderManageGroups() {
     container.innerHTML = (groupData || []).map(g => `
         <div class="p-4 bg-slate-900 rounded-2xl flex justify-between items-center border border-slate-800">
             <div class="flex flex-col text-left">
-                <span class="text-[8px] font-black ${g.type === 'flexible' ? 'text-indigo-400' : 'text-amber-400'} uppercase">${t('group_type.' + g.type)}</span>
+                <span class="text-[8px] font-black ${g.type === 'flexible' ? 'text-indigo-400' : g.type === 'fixed' ? 'text-amber-400' : 'text-emerald-400'} uppercase">${t('group_type.' + g.type)}</span>
                 <span class="font-black text-[10px] uppercase italic text-slate-200">${g.name}</span>
                 <span class="text-[8px] font-bold text-slate-500 tracking-widest mt-1">${g.code}</span>
             </div>
@@ -266,8 +273,10 @@ async function leaveGroupConfirm(groupId, name, type) {
     if (type === 'flexible') {
         await cleanupFutureTrips(groupId);
         await _supabase.schema('flexible_carpooling').from('flexible_members').delete().eq('group_id', groupId).eq('user_id', user.id);
-    } else {
+    } else if (type === 'fixed') {
         await _supabase.schema('fixed_carpooling').from('fixed_members').delete().eq('group_id', groupId).eq('user_id', user.id);
+    } else if (type === 'parking') {
+        await _supabase.schema('parking').from('members').delete().eq('group_id', groupId).eq('user_id', user.id);
     }
 
     showToast(`${t('shared.toast_left_group')} "${name}"`);

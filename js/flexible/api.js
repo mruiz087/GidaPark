@@ -208,6 +208,12 @@ async function updateProfileName() {
             .update({ display_name: newName })
             .eq('user_id', user.id);
 
+        // Update in parking members
+        await _supabase.schema('parking')
+            .from('members')
+            .update({ display_name: newName })
+            .eq('user_id', user.id);
+
         showToast(t('shared.toast_name_saved'));
 
         // Refresh detail views if open
