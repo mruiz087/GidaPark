@@ -8,11 +8,12 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "./icon_partekartu.png",
+      "src": "./icon_gidapark.png",
       "sizes": "512x512",
       "type": "image/png"
     }
   ]
 
 }
+
 
