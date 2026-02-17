@@ -2,6 +2,26 @@
 let currentWeekOffset = 0; // 0 = current week, -1 = last week, etc.
 window.currentGroupId = window.currentGroupId || null;
 
+// Fuerza cualquier fecha al lunes anterior a las 00:00:00
+function getMonday(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay();
+    // Ajuste para que el domingo (0) cuente como final de semana y vuelva al lunes anterior
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); 
+    return new Date(d.setDate(diff));
+}
+
+// Calcula la diferencia de semanas reales entre dos fechas
+function getWeeksPassed(targetDate, referenceDate) {
+    const startMonday = getMonday(referenceDate);
+    const targetMonday = getMonday(targetDate);
+    
+    const diffMs = targetMonday.getTime() - startMonday.getTime();
+    // Usamos Math.round para absorber desfases de ±1 hora por cambios de horario de verano
+    return Math.round(diffMs / (1000 * 60 * 60 * 24 * 7));
+}
+
 function getStartOfWeek(date) {
     const d = new Date(date);
     const day = d.getDay();
@@ -44,7 +64,8 @@ function renderParkingCalendar() {
     nextBtn.onclick = () => changeWeek(1);
 
     // Render 7 days
-    const startDate = window.parkingState?.startDate || new Date(2025, 0, 1);
+    const startDate = window.parkingState?.startDate || new Date(2025, 0, 6);
+    const weeksPassed = getWeeksPassed(currentDate, startDate);
 
     for (let i = 0; i < 7; i++) {
         const currentDate = new Date(viewStart);
@@ -173,8 +194,8 @@ function openParkingDayDetail(dateIsoStr) {
     const U = window.parkingState.members.length;
     if (N === 0 || U === 0) return;
 
-    const startDate = window.parkingState.startDate || new Date(2025, 0, 1);
-    const weeksPassed = Math.floor((date - startDate) / (1000 * 60 * 60 * 24 * 7));
+    const startDate = window.parkingState.startDate || new Date(2025, 0, 6);
+    const weeksPassed = getWeeksPassed(date, startDate);
     const mold = window.buildMold(N, U);
     const rotationOffset = (U > N) ? weeksPassed : 0;
     const rotatedMembers = window.rotateUsers(window.parkingState.members, rotationOffset);
@@ -292,8 +313,8 @@ function openParkingMembersModal() {
     const membersBase = window.parkingState.members; // Orden original, sin rotar
 
     const today = new Date();
-    const startDate = window.parkingState.startDate || new Date(2025, 0, 1);
-    const weeksPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24 * 7));
+    const startDate = window.parkingState.startDate || new Date(2025, 0, 6);
+    const weeksPassed = getWeeksPassed(today, startDate);
 
     const N = window.parkingState.spots.length;
     const U = membersBase.length;
