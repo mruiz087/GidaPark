@@ -64,7 +64,11 @@ function renderParkingCalendar() {
     nextBtn.onclick = () => changeWeek(1);
 
     // Render 7 days
-    const startDate = window.parkingState?.startDate || new Date(2025, 0, 6);
+    const startDate = window.parkingState?.startDate 
+        ? new Date(window.parkingState.startDate) 
+        : new Date(2025, 0, 6); // Lunes 6 de enero de 2025
+
+    // Dentro de tu bucle de días (donde generas las celdas del calendario):
     const weeksPassed = getWeeksPassed(currentDate, startDate);
 
     for (let i = 0; i < 7; i++) {
@@ -188,13 +192,14 @@ let currentDetailDateStr = null;
 
 function openParkingDayDetail(dateIsoStr) {
     const date = new Date(dateIsoStr);
+    if (isNaN(date)) return;
     currentDetailDateStr = dateIsoStr.split('T')[0];
 
     const N = window.parkingState.spots.length;
     const U = window.parkingState.members.length;
     if (N === 0 || U === 0) return;
 
-    const startDate = window.parkingState.startDate || new Date(2025, 0, 6);
+    const startDate = window.parkingState.startDate ? new Date(window.parkingState.startDate) : new Date(2025, 0, 6);
     const weeksPassed = getWeeksPassed(date, startDate);
     const mold = window.buildMold(N, U);
     const rotationOffset = (U > N) ? weeksPassed : 0;
