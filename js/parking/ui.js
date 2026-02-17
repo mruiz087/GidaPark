@@ -169,18 +169,17 @@ function openParkingDayDetail(dateIsoStr) {
     const date = new Date(dateIsoStr);
     currentDetailDateStr = dateIsoStr.split('T')[0];
 
-    const startDate = window.parkingState.startDate || new Date(2025, 0, 1);
-    const weeksPassed = Math.floor((date - startDate) / (1000 * 60 * 60 * 24 * 7));
     const N = window.parkingState.spots.length;
     const U = window.parkingState.members.length;
-
     if (N === 0 || U === 0) return;
 
+    const startDate = window.parkingState.startDate || new Date(2025, 0, 1);
+    const weeksPassed = Math.floor((date - startDate) / (1000 * 60 * 60 * 24 * 7));
     const mold = window.buildMold(N, U);
     const rotationOffset = (U > N) ? weeksPassed : 0;
     const rotatedMembers = window.rotateUsers(window.parkingState.members, rotationOffset);
 
-    // 1. Determinar quién quiere ir
+    // 1. Identificar interesados
     const dayOfWeek = date.getDay() || 7;
     const interestedIds = rotatedMembers.filter(m => {
         const override = window.parkingState.attendance[currentDetailDateStr]?.find(a => a.user_id === m.user_id);
@@ -188,15 +187,16 @@ function openParkingDayDetail(dateIsoStr) {
         return m.routine && m.routine.includes(dayOfWeek);
     }).map(m => m.user_id);
 
-    // 2. Mapeo inicial: Miembro + Su posición en el molde
+    // 2. Crear objetos de asignación manteniendo el orden de la lista
     let assignments = rotatedMembers.map((member, index) => ({
         user: member,
-        moldValue: mold[index], // "P1", "R1", etc.
+        moldValue: mold[index], // P1, R1, P2...
         isAttending: interestedIds.includes(member.user_id),
-        finalSpotName: null
+        finalSpotName: null,
+        priority: index // Guardamos la posición original para no perder el orden visual
     }));
 
-    // 3. Identificar plazas físicas vacantes (Plazas cuyos dueños se desapuntaron)
+    // 3. Gestionar dueños de plazas (P) y detectar huecos
     let availablePhysicalSpots = [];
     assignments.forEach(a => {
         if (a.moldValue.startsWith('P')) {
@@ -204,21 +204,31 @@ function openParkingDayDetail(dateIsoStr) {
             const spotName = window.parkingState.spots[spotIndex]?.name || a.moldValue;
             
             if (a.isAttending) {
-                a.finalSpotName = spotName; // Se la queda su dueño
+                a.finalSpotName = spotName;
             } else {
-                availablePhysicalSpots.push(spotName); // Queda libre para un reserva
+                availablePhysicalSpots.push(spotName);
             }
         }
     });
 
-    // 4. Repartir vacantes a los reservas interesados por orden de prioridad
-    assignments.forEach(a => {
-        if (a.moldValue.startsWith('R') && a.isAttending && availablePhysicalSpots.length > 0) {
-            a.finalSpotName = availablePhysicalSpots.shift();
+    // 4. Gestionar Reservas (R) por estricto orden (R1 > R2 > R3...)
+    // Filtramos solo los reservas que asisten y no tienen plaza aún
+    let reserveCandidates = assignments
+        .filter(a => a.moldValue.startsWith('R') && a.isAttending)
+        .sort((a, b) => {
+            const numA = parseInt(a.moldValue.substring(1));
+            const numB = parseInt(b.moldValue.substring(1));
+            return numA - numB;
+        });
+
+    // Asignamos las plazas libres a los reservas por su orden R
+    reserveCandidates.forEach(candidate => {
+        if (availablePhysicalSpots.length > 0) {
+            candidate.finalSpotName = availablePhysicalSpots.shift();
         }
     });
 
-    // --- RENDERIZADO UI ---
+    // --- RENDERIZADO (Usando el array 'assignments' original para mantener el orden visual) ---
     const list = document.getElementById('parking-assignments-list');
     list.innerHTML = assignments.map((a) => {
         const isMe = a.user.user_id === currentUser.id;
@@ -246,9 +256,7 @@ function openParkingDayDetail(dateIsoStr) {
             <div class="flex items-center justify-between p-4 rounded-xl border ${rowBg} ${isMe ? 'ring-1 ring-emerald-400' : ''} ${!a.isAttending ? 'opacity-40' : ''}">
                 <div class="flex items-center gap-3">
                     <div class="flex flex-col">
-                        <span class="text-white font-bold text-sm ${isMe ? 'text-emerald-300' : ''}">
-                            ${a.user.display_name}
-                        </span>
+                        <span class="text-white font-bold text-sm ${isMe ? 'text-emerald-300' : ''}">${a.user.display_name}</span>
                         <div class="flex items-center gap-2">
                              <span class="text-[9px] font-black px-1.5 bg-slate-900 text-slate-400 rounded border border-slate-700">${a.moldValue}</span>
                              <span class="text-[10px] uppercase tracking-widest font-black ${statusColor}">${statusLabel}</span>
@@ -264,7 +272,7 @@ function openParkingDayDetail(dateIsoStr) {
         `;
     }).join('');
 
-    // Actualizar resto del modal...
+    // ActualizarUI básica del modal
     document.getElementById('parking-detail-date').innerText = date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
     document.getElementById('modal-parking-day-detail').classList.remove('hidden');
     document.getElementById('check-parking-attendance').checked = interestedIds.includes(currentUser.id);
