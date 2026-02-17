@@ -170,89 +170,84 @@ function openParkingDayDetail(dateIsoStr) {
     currentDetailDateStr = dateIsoStr.split('T')[0];
 
     const startDate = window.parkingState.startDate || new Date(2025, 0, 1);
-
-    // Calculate assignments for this date
     const weeksPassed = Math.floor((date - startDate) / (1000 * 60 * 60 * 24 * 7));
     const N = window.parkingState.spots.length;
     const U = window.parkingState.members.length;
 
     if (N === 0 || U === 0) return alert(t('parking.no_datos'));
 
-    // 1. Calculate Interests for this date
-    const dayOfWeek = date.getDay() || 7; // ISO 1..7 (Mon..Sun)
+    const dayOfWeek = date.getDay() || 7;
     const interests = window.parkingState.members.filter(m => {
-        // Check overrides first
         const override = window.parkingState.attendance[currentDetailDateStr]?.find(a => a.user_id === m.user_id);
         if (override) return override.is_attending;
-
-        // Else check routine
         return m.routine && m.routine.includes(dayOfWeek);
     }).map(m => m.user_id);
 
     const mold = window.buildMold(N, U);
     const rotationOffset = (U > N) ? weeksPassed : 0;
+    
+    // ESTE ES EL ORDEN QUE DEBEMOS RESPETAR (La rotación pura)
     const rotatedMembers = window.rotateUsers(window.parkingState.members, rotationOffset);
+    
+    // Obtenemos las asignaciones (quién tiene plaza y quién no)
     const assignments = window.assign(rotatedMembers, mold, interests);
 
-    // Fill Modal
     const modal = document.getElementById('modal-parking-day-detail');
     modal.classList.remove('hidden');
 
     const options = { weekday: 'long', day: 'numeric', month: 'long' };
     document.getElementById('parking-detail-date').innerText = date.toLocaleDateString(t('parking.lang_code'), options);
 
-    // Update Toggle for current user
     const amIAttending = interests.includes(currentUser.id);
     document.getElementById('check-parking-attendance').checked = amIAttending;
 
     const list = document.getElementById('parking-assignments-list');
 
-    list.innerHTML = assignments.map((a, index) => {
-        const isMe = a.user.user_id === currentUser.id;
-        const isAttending = a.status !== 'not_attending';
+    // IMPORTANTE: No hacemos .sort(). Usamos el orden de 'rotatedMembers' 
+    // para buscar su resultado en 'assignments'
+    list.innerHTML = rotatedMembers.map((member, index) => {
+        // Buscamos qué le ha tocado a este miembro en el cálculo de hoy
+        const a = assignments.find(asig => asig.user.user_id === member.user_id);
         
-        // Un usuario tiene plaza física si su slot asignado empieza por 'P'
+        const isMe = member.user_id === currentUser.id;
+        const isAttending = a.status !== 'not_attending';
         const hasPhysicalSlot = a.slot && a.slot.startsWith('P'); 
         
-        let slotDisplay = "-";
+        let slotName = "-";
         let statusLabel = t('parking.desapuntado');
         let statusColor = "text-slate-500";
         let rowBg = "bg-slate-800/50 border-slate-700";
 
         if (isAttending) {
             if (hasPhysicalSlot) {
-                // Es "Asignado" o es un "Reserva" que ha subido porque alguien falló
                 const pIndex = parseInt(a.slot.substring(1)) - 1;
-                slotDisplay = window.parkingState.spots[pIndex]?.name || a.slot;
+                slotName = window.parkingState.spots[pIndex]?.name || a.slot;
                 
+                // Si su estatus original en el molde era reserva, pero tiene slot:
                 statusLabel = (a.status === 'reserve') ? "RESERVA CON PLAZA" : t('parking.tiene_plaza');
                 statusColor = "text-emerald-400";
                 rowBg = "bg-emerald-900/20 border-emerald-500/30";
             } else {
-                // Sigue en reserva porque no hay plazas suficientes
                 statusLabel = t('parking.en_reserva');
                 statusColor = "text-amber-400";
-                slotDisplay = "RES";
+                slotName = "RES";
             }
         }
-
-        // El número de prioridad real (1, 2, 3...)
-        const priorityNumber = index + 1;
 
         return `
             <div class="flex items-center justify-between p-4 rounded-xl border ${rowBg} ${isMe ? 'ring-1 ring-emerald-400' : ''} ${!isAttending ? 'opacity-40' : ''}">
                 <div class="flex items-center gap-3">
                     <div class="w-6 h-6 rounded bg-slate-900 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-700">
-                        ${priorityNumber}
+                        ${index + 1}
                     </div>
                     <div class="flex flex-col">
-                        <span class="text-white font-bold text-sm ${isMe ? 'text-emerald-300' : ''}">${a.user.display_name} ${isMe ? '(Tú)' : ''}</span>
+                        <span class="text-white font-bold text-sm ${isMe ? 'text-emerald-300' : ''}">${member.display_name}</span>
                         <span class="text-[10px] uppercase tracking-widest font-black ${statusColor}">${statusLabel}</span>
                     </div>
                 </div>
                 <div class="text-right">
                     <span class="font-black text-xs px-3 py-1.5 rounded-lg ${hasPhysicalSlot ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-400'}">
-                        ${slotDisplay}
+                        ${slotName}
                     </span>
                 </div>
             </div>
