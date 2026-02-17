@@ -176,67 +176,69 @@ function openParkingDayDetail(dateIsoStr) {
 
     if (N === 0 || U === 0) return;
 
-    // 1. Obtener el molde y la rotación
-    const mold = window.buildMold(N, U); // Ejemplo: ['P1', 'R1', 'P2', 'R2'...]
+    const mold = window.buildMold(N, U);
     const rotationOffset = (U > N) ? weeksPassed : 0;
     const rotatedMembers = window.rotateUsers(window.parkingState.members, rotationOffset);
 
-    // 2. Determinar interesados
+    // 1. Determinar quién quiere ir
     const dayOfWeek = date.getDay() || 7;
-    const interestedUserIds = rotatedMembers.filter(m => {
+    const interestedIds = rotatedMembers.filter(m => {
         const override = window.parkingState.attendance[currentDetailDateStr]?.find(a => a.user_id === m.user_id);
         if (override) return override.is_attending;
         return m.routine && m.routine.includes(dayOfWeek);
     }).map(m => m.user_id);
 
-    // 3. Crear pool de plazas físicas REALES disponibles (los nombres de las plazas: "Plaza A", "Plaza B"...)
-    let physicalSpotsNames = window.parkingState.spots.map(s => s.name);
+    // 2. Mapeo inicial: Miembro + Su posición en el molde
+    let assignments = rotatedMembers.map((member, index) => ({
+        user: member,
+        moldValue: mold[index], // "P1", "R1", etc.
+        isAttending: interestedIds.includes(member.user_id),
+        finalSpotName: null
+    }));
 
-    // 4. Asignación respetando el molde
-    const finalAssignments = rotatedMembers.map((member, index) => {
-        const moldValue = mold[index]; // Esto es "P1", "R1", "P2"... según tu lógica de molde
-        const isAttending = interestedUserIds.includes(member.user_id);
-        const isOriginalSpot = moldValue.startsWith('P');
-
-        return {
-            user: member,
-            isAttending,
-            moldValue, // Su etiqueta fija según el molde (P1, R1...)
-            isOriginalSpot
-        };
-    });
-
-    // 5. Repartir los nombres de plazas físicas solo a los que asisten por orden de lista
-    const activeAssignments = finalAssignments.map(a => {
-        let assignedSpotName = null;
-        if (a.isAttending && physicalSpotsNames.length > 0) {
-            assignedSpotName = physicalSpotsNames.shift();
+    // 3. Identificar plazas físicas vacantes (Plazas cuyos dueños se desapuntaron)
+    let availablePhysicalSpots = [];
+    assignments.forEach(a => {
+        if (a.moldValue.startsWith('P')) {
+            const spotIndex = parseInt(a.moldValue.substring(1)) - 1;
+            const spotName = window.parkingState.spots[spotIndex]?.name || a.moldValue;
+            
+            if (a.isAttending) {
+                a.finalSpotName = spotName; // Se la queda su dueño
+            } else {
+                availablePhysicalSpots.push(spotName); // Queda libre para un reserva
+            }
         }
-        return { ...a, assignedSpotName };
     });
 
-    // --- RENDERIZADO ---
+    // 4. Repartir vacantes a los reservas interesados por orden de prioridad
+    assignments.forEach(a => {
+        if (a.moldValue.startsWith('R') && a.isAttending && availablePhysicalSpots.length > 0) {
+            a.finalSpotName = availablePhysicalSpots.shift();
+        }
+    });
+
+    // --- RENDERIZADO UI ---
     const list = document.getElementById('parking-assignments-list');
-    list.innerHTML = activeAssignments.map((a) => {
+    list.innerHTML = assignments.map((a) => {
         const isMe = a.user.user_id === currentUser.id;
+        const isOriginalOwner = a.moldValue.startsWith('P');
         
         let statusLabel = "DESAPUNTADO";
         let statusColor = "text-slate-500";
         let rowBg = "bg-slate-800/50 border-slate-700";
-        let rightBadgeText = a.moldValue; // Por defecto P1, R1...
+        let badgeText = a.moldValue;
 
         if (a.isAttending) {
-            if (a.assignedSpotName) {
-                // TIENE PLAZA (sea porque le tocaba P o porque era R y ha subido)
-                statusLabel = a.isOriginalSpot ? "TIENE PLAZA" : "RESERVA CON PLAZA";
+            if (a.finalSpotName) {
+                statusLabel = isOriginalOwner ? "TIENE PLAZA" : "RESERVA CON PLAZA";
                 statusColor = "text-emerald-400";
                 rowBg = "bg-emerald-900/20 border-emerald-500/30";
-                rightBadgeText = a.assignedSpotName; 
+                badgeText = a.finalSpotName;
             } else {
-                // ES RESERVA Y NO HAY PLAZA
                 statusLabel = "EN RESERVA";
                 statusColor = "text-amber-400";
-                rightBadgeText = a.moldValue;
+                badgeText = a.moldValue;
             }
         }
 
@@ -248,29 +250,24 @@ function openParkingDayDetail(dateIsoStr) {
                             ${a.user.display_name}
                         </span>
                         <div class="flex items-center gap-2">
-                             <span class="text-[9px] font-black px-1.5 bg-slate-900 text-slate-400 rounded border border-slate-700">
-                                ${a.moldValue}
-                             </span>
-                             <span class="text-[10px] uppercase tracking-widest font-black ${statusColor}">
-                                ${statusLabel}
-                             </span>
+                             <span class="text-[9px] font-black px-1.5 bg-slate-900 text-slate-400 rounded border border-slate-700">${a.moldValue}</span>
+                             <span class="text-[10px] uppercase tracking-widest font-black ${statusColor}">${statusLabel}</span>
                         </div>
                     </div>
                 </div>
                 <div class="text-right">
-                    <span class="font-black text-xs px-3 py-1.5 rounded-lg ${a.assignedSpotName ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-400'}">
-                        ${rightBadgeText}
+                    <span class="font-black text-xs px-3 py-1.5 rounded-lg ${a.finalSpotName ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-400'}">
+                        ${badgeText}
                     </span>
                 </div>
             </div>
         `;
     }).join('');
 
-    // Actualizar fecha y toggle...
-    const options = { weekday: 'long', day: 'numeric', month: 'long' };
-    document.getElementById('parking-detail-date').innerText = date.toLocaleDateString('es-ES', options);
+    // Actualizar resto del modal...
+    document.getElementById('parking-detail-date').innerText = date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
     document.getElementById('modal-parking-day-detail').classList.remove('hidden');
-    document.getElementById('check-parking-attendance').checked = interestedUserIds.includes(currentUser.id);
+    document.getElementById('check-parking-attendance').checked = interestedIds.includes(currentUser.id);
 }
 
 function closeParkingDayDetail() {
