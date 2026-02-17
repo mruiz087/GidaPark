@@ -207,46 +207,52 @@ function openParkingDayDetail(dateIsoStr) {
 
     const list = document.getElementById('parking-assignments-list');
 
-    // Sort assignments: Assigned first, then Reserve, then Not Attending/Overflow
-    assignments.sort((a, b) => {
-        const order = { 'assigned': 1, 'reserve': 2, 'not_attending': 3, 'overflow': 4 };
-        return order[a.status] - order[b.status];
-    });
-
-    list.innerHTML = assignments.map(a => {
+    list.innerHTML = assignments.map((a, index) => {
         const isMe = a.user.user_id === currentUser.id;
-        let slotName = a.slot;
-        const isSpot = a.status === 'assigned';
-        const isReserve = a.status === 'reserve';
         const isAttending = a.status !== 'not_attending';
+        
+        // Un usuario tiene plaza física si su slot asignado empieza por 'P'
+        const hasPhysicalSlot = a.slot && a.slot.startsWith('P'); 
+        
+        let slotDisplay = "-";
+        let statusLabel = t('parking.desapuntado');
+        let statusColor = "text-slate-500";
+        let rowBg = "bg-slate-800/50 border-slate-700";
 
-        if (isSpot) {
-            const pIndex = parseInt(a.slot.substring(1)) - 1;
-            slotName = window.parkingState.spots[pIndex]?.name || a.slot;
-        } else if (isReserve) {
-            slotName = t('parking.reserva_con_slot').replace('{slot}', a.slot);
-        } else {
-            slotName = "-";
+        if (isAttending) {
+            if (hasPhysicalSlot) {
+                // Es "Asignado" o es un "Reserva" que ha subido porque alguien falló
+                const pIndex = parseInt(a.slot.substring(1)) - 1;
+                slotDisplay = window.parkingState.spots[pIndex]?.name || a.slot;
+                
+                statusLabel = (a.status === 'reserve') ? "RESERVA CON PLAZA" : t('parking.tiene_plaza');
+                statusColor = "text-emerald-400";
+                rowBg = "bg-emerald-900/20 border-emerald-500/30";
+            } else {
+                // Sigue en reserva porque no hay plazas suficientes
+                statusLabel = t('parking.en_reserva');
+                statusColor = "text-amber-400";
+                slotDisplay = "RES";
+            }
         }
 
-        let subText = t('parking.desapuntado');
-        if (isSpot) subText = t('parking.tiene_plaza');
-        if (isReserve) subText = t('parking.en_reserva');
+        // El número de prioridad real (1, 2, 3...)
+        const priorityNumber = index + 1;
 
         return `
-            <div class="flex items-center justify-between p-4 rounded-xl ${isSpot ? 'bg-emerald-900/20 border border-emerald-500/30' : 'bg-slate-800/50 border border-slate-700'} ${isMe ? 'ring-1 ring-emerald-400' : ''} ${!isAttending ? 'opacity-50' : ''}">
+            <div class="flex items-center justify-between p-4 rounded-xl border ${rowBg} ${isMe ? 'ring-1 ring-emerald-400' : ''} ${!isAttending ? 'opacity-40' : ''}">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm bg-slate-700">
-                        ${a.user.display_name.substring(0, 2).toUpperCase()}
+                    <div class="w-6 h-6 rounded bg-slate-900 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-700">
+                        ${priorityNumber}
                     </div>
                     <div class="flex flex-col">
                         <span class="text-white font-bold text-sm ${isMe ? 'text-emerald-300' : ''}">${a.user.display_name} ${isMe ? '(Tú)' : ''}</span>
-                        <span class="text-[10px] uppercase tracking-widest ${isSpot ? 'text-emerald-400' : (isReserve ? 'text-amber-400' : 'text-slate-500')}">${subText}</span>
+                        <span class="text-[10px] uppercase tracking-widest font-black ${statusColor}">${statusLabel}</span>
                     </div>
                 </div>
                 <div class="text-right">
-                    <span class="font-black text-xs px-3 py-1.5 rounded-lg ${isSpot ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-400'}">
-                        ${slotName}
+                    <span class="font-black text-xs px-3 py-1.5 rounded-lg ${hasPhysicalSlot ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-400'}">
+                        ${slotDisplay}
                     </span>
                 </div>
             </div>
