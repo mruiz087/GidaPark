@@ -289,34 +289,37 @@ function openParkingMembersModal() {
     modal.classList.remove('hidden');
 
     const list = document.getElementById('parking-members-list-general');
-    if (!list || !window.parkingState?.members) return;
+    const membersBase = window.parkingState.members; // Orden original, sin rotar
 
-    // Calculate rotation for current week
     const today = new Date();
     const startDate = window.parkingState.startDate || new Date(2025, 0, 1);
     const weeksPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24 * 7));
 
     const N = window.parkingState.spots.length;
-    const U = window.parkingState.members.length;
-    const rotationOffset = (U > N) ? weeksPassed : 0;
+    const U = membersBase.length;
+    const mold = window.buildMold(N, U);
 
-    const rotatedMembers = window.rotateUsers(window.parkingState.members, rotationOffset);
+    // Calculamos el desplazamiento para las etiquetas del molde
+    const offset = (U > N) ? (weeksPassed % U) : 0;
 
-    list.innerHTML = rotatedMembers.map((m, index) => {
-        const priorityNum = index + 1;
-        const isSpot = priorityNum <= N;
-        const statusText = isSpot ? t('parking.plaza') : t('parking.reserva');
+    list.innerHTML = membersBase.map((m, index) => {
+        // Buscamos qué etiqueta le toca a este usuario fijo según la semana
+        // Usamos (index + offset) % U para asignar la etiqueta rotada al nombre fijo
+        const moldValue = mold[(index + (U - offset)) % U];
+        const isSpot = moldValue.startsWith('P');
+        
+        const statusText = isSpot ? "TIENE PLAZA" : "RESERVA";
         const statusColor = isSpot ? "text-emerald-400" : "text-amber-400";
         const bgColor = isSpot ? "bg-emerald-900/10 border-emerald-500/20" : "bg-slate-800/50 border-slate-700";
 
         return `
-            <div class="flex items-center justify-between p-4 rounded-xl ${bgColor} border">
+            <div class="flex items-center justify-between p-4 rounded-xl ${bgColor} border transition-all">
                 <div class="flex items-center gap-3">
-                    <div class="w-6 h-6 rounded-lg bg-slate-900 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-700">
-                        ${priorityNum}
+                    <div class="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-700">
+                        ${moldValue}
                     </div>
                     <div class="flex flex-col">
-                        <span class="text-white font-bold text-sm">${m.display_name} ${m.user_id === currentUser.id ? t('parking.tu') : ''}</span>
+                        <span class="text-white font-bold text-sm">${m.display_name}</span>
                         <span class="text-[9px] uppercase tracking-widest ${statusColor} font-black">${statusText}</span>
                     </div>
                 </div>
