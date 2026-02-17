@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gidapark-v1.3';
+const CACHE_NAME = 'gidapark-v1.4';
 const assets = [
     'index.html',
     'manifest.json',
@@ -66,6 +66,7 @@ self.addEventListener('fetch', e => {
         caches.match(e.request).then(res => res || fetch(e.request))
     );
 });
+
 
 
 
