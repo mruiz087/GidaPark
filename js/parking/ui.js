@@ -68,12 +68,11 @@ function renderParkingCalendar() {
         ? new Date(window.parkingState.startDate) 
         : new Date(2025, 0, 6); // Lunes 6 de enero de 2025
 
-    // Dentro de tu bucle de días (donde generas las celdas del calendario):
-    const weeksPassed = getWeeksPassed(currentDate, startDate);
-
     for (let i = 0; i < 7; i++) {
         const currentDate = new Date(viewStart);
         currentDate.setDate(currentDate.getDate() + i);
+
+        const weeksPassed = getWeeksPassed(currentDate, startDate);
 
         const d = currentDate.getDate();
 
