@@ -69,25 +69,15 @@ function renderParkingCalendar() {
         const dateStr = currentDate.toISOString();
 
         // Calculate assignments for this day
-        const dayOfWeek = currentDate.getDay() || 7;
-        const dateIso = currentDate.toISOString().split('T')[0];
-
-        const interests = window.parkingState.members.filter(m => {
-            const override = window.parkingState.attendance[dateIso]?.find(a => a.user_id === m.user_id);
-            if (override) return override.is_attending;
-            return m.routine && m.routine.includes(dayOfWeek);
-        }).map(m => m.user_id);
-
-        const mold = window.buildMold(N, U);
-        const rotationOffset = (U > N) ? weeksPassed : 0;
-        const rotatedMembers = window.rotateUsers(window.parkingState.members, rotationOffset);
-        const assignments = window.assign(rotatedMembers, mold, interests);
+        const assignments = getAssignmentsForDate(currentDate);
 
         const myId = currentUser.id;
         const myAssign = assignments.find(a => a.user.user_id === myId);
-        const isMyTurn = myAssign && myAssign.status !== 'not_attending';
-        const hasSpot = myAssign && myAssign.status === 'assigned';
-        const isReserve = myAssign && myAssign.status === 'reserve';
+        const isMyTurn = myAssign && myAssign.isAttending;
+        const hasSpot = myAssign && myAssign.finalSpotName !== null;
+
+        // isReserve is true if I am attending but have no spot
+        const isReserve = isMyTurn && !hasSpot;
 
         const isToday = currentDate.toDateString() === today.toDateString();
         const isPast = currentDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -101,10 +91,11 @@ function renderParkingCalendar() {
 
         let spotAnnotation = '';
         if (hasSpot) {
-            const pIndex = parseInt(myAssign.slot.substring(1)) - 1;
-            const spotName = window.parkingState.spots[pIndex]?.name || myAssign.slot;
-            spotAnnotation = `<span class="text-[8px] font-black text-emerald-400 uppercase mt-1 leading-none">${spotName}</span>`;
+            spotAnnotation = `<span class="text-[8px] font-black text-emerald-400 uppercase mt-1 leading-none">${myAssign.finalSpotName}</span>`;
         } else if (isReserve) {
+            // Check if I was originally a spot owner but marked as not attending?
+            // "isReserve" here means current status. If I am R1 and get P1, hasSpot is true.
+            // If I am R1 and don't get spot, isReserve is true.
             spotAnnotation = `<span class="text-[8px] font-black text-amber-500 uppercase mt-1 leading-none">RES</span>`;
         }
 
@@ -124,10 +115,6 @@ function renderParkingCalendar() {
         }
         grid.appendChild(cell);
     }
-
-    // Render Legend (Removed per user request)
-    const legend = document.getElementById('parking-legend');
-    if (legend) legend.innerHTML = '';
 }
 
 function renderDayCell(container, dayNum, innerHTML, extraClasses = '', inlineStyle = '', onClick = null) {
@@ -187,53 +174,15 @@ function openParkingDayDetail(dateIsoStr) {
         return m.routine && m.routine.includes(dayOfWeek);
     }).map(m => m.user_id);
 
-    // 2. Crear objetos de asignación manteniendo el orden de la lista
-    let assignments = rotatedMembers.map((member, index) => ({
-        user: member,
-        moldValue: mold[index], // P1, R1, P2...
-        isAttending: interestedIds.includes(member.user_id),
-        finalSpotName: null,
-        priority: index // Guardamos la posición original para no perder el orden visual
-    }));
-
-    // 3. Gestionar dueños de plazas (P) y detectar huecos
-    let availablePhysicalSpots = [];
-    assignments.forEach(a => {
-        if (a.moldValue.startsWith('P')) {
-            const spotIndex = parseInt(a.moldValue.substring(1)) - 1;
-            const spotName = window.parkingState.spots[spotIndex]?.name || a.moldValue;
-            
-            if (a.isAttending) {
-                a.finalSpotName = spotName;
-            } else {
-                availablePhysicalSpots.push(spotName);
-            }
-        }
-    });
-
-    // 4. Gestionar Reservas (R) por estricto orden (R1 > R2 > R3...)
-    // Filtramos solo los reservas que asisten y no tienen plaza aún
-    let reserveCandidates = assignments
-        .filter(a => a.moldValue.startsWith('R') && a.isAttending)
-        .sort((a, b) => {
-            const numA = parseInt(a.moldValue.substring(1));
-            const numB = parseInt(b.moldValue.substring(1));
-            return numA - numB;
-        });
-
-    // Asignamos las plazas libres a los reservas por su orden R
-    reserveCandidates.forEach(candidate => {
-        if (availablePhysicalSpots.length > 0) {
-            candidate.finalSpotName = availablePhysicalSpots.shift();
-        }
-    });
+    // 2. Reuse shared logic
+    const assignments = getAssignmentsForDate(date);
 
     // --- RENDERIZADO (Usando el array 'assignments' original para mantener el orden visual) ---
     const list = document.getElementById('parking-assignments-list');
     list.innerHTML = assignments.map((a) => {
         const isMe = a.user.user_id === currentUser.id;
         const isOriginalOwner = a.moldValue.startsWith('P');
-        
+
         let statusLabel = "DESAPUNTADO";
         let statusColor = "text-slate-500";
         let rowBg = "bg-slate-800/50 border-slate-700";
@@ -278,6 +227,76 @@ function openParkingDayDetail(dateIsoStr) {
     document.getElementById('check-parking-attendance').checked = interestedIds.includes(currentUser.id);
 }
 
+function getAssignmentsForDate(date) {
+    const N = window.parkingState?.spots?.length || 0;
+    const U = window.parkingState?.members?.length || 0;
+    if (N === 0 || U === 0) return [];
+
+    const dateIsoStr = date.toISOString().split('T')[0];
+    const startDate = window.parkingState.startDate || new Date(2025, 0, 6);
+
+    // Calculate weeksPassed based on Mondays to align rotation
+    const startMonday = getStartOfWeek(new Date(startDate));
+    startMonday.setHours(0, 0, 0, 0);
+    const currentMonday = getStartOfWeek(new Date(date));
+    currentMonday.setHours(0, 0, 0, 0);
+    const diffTime = currentMonday - startMonday;
+    const weeksPassed = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
+
+    const mold = window.buildMold(N, U);
+    const rotationOffset = (U > N) ? weeksPassed : 0;
+    const rotatedMembers = window.rotateUsers(window.parkingState.members, rotationOffset);
+    const dayOfWeek = date.getDay() || 7;
+
+    // 1. Identify interested users
+    const interestedIds = rotatedMembers.filter(m => {
+        const override = window.parkingState.attendance[dateIsoStr]?.find(a => a.user_id === m.user_id);
+        if (override) return override.is_attending;
+        return m.routine && m.routine.includes(dayOfWeek);
+    }).map(m => m.user_id);
+
+    // 2. Create assignment objects
+    let assignments = rotatedMembers.map((member, index) => ({
+        user: member,
+        moldValue: mold[index],
+        isAttending: interestedIds.includes(member.user_id),
+        finalSpotName: null,
+        priority: index
+    }));
+
+    // 3. Manage owners (P) and detect gaps
+    let availablePhysicalSpots = [];
+    assignments.forEach(a => {
+        if (a.moldValue.startsWith('P')) {
+            const spotIndex = parseInt(a.moldValue.substring(1)) - 1;
+            const spotName = window.parkingState.spots[spotIndex]?.name || a.moldValue;
+
+            if (a.isAttending) {
+                a.finalSpotName = spotName;
+            } else {
+                availablePhysicalSpots.push(spotName);
+            }
+        }
+    });
+
+    // 4. Manage Reserves (R)
+    let reserveCandidates = assignments
+        .filter(a => a.moldValue.startsWith('R') && a.isAttending)
+        .sort((a, b) => {
+            const numA = parseInt(a.moldValue.substring(1));
+            const numB = parseInt(b.moldValue.substring(1));
+            return numA - numB;
+        });
+
+    reserveCandidates.forEach(candidate => {
+        if (availablePhysicalSpots.length > 0) {
+            candidate.finalSpotName = availablePhysicalSpots.shift();
+        }
+    });
+
+    return assignments;
+}
+
 function closeParkingDayDetail() {
     document.getElementById('modal-parking-day-detail').classList.add('hidden');
     currentDetailDateStr = null;
@@ -291,12 +310,20 @@ function openParkingMembersModal() {
     const list = document.getElementById('parking-members-list-general');
     const membersBase = window.parkingState.members; // Orden original, sin rotar
 
-    const today = new Date();
+    const U = membersBase.length; // Orden original, sin rotar
+
+    const today = new Date(); // Use today for "current week" context in members modal
     const startDate = window.parkingState.startDate || new Date(2025, 0, 6);
-    const weeksPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24 * 7));
+
+    // Calculate weeksPassed based on Mondays to align rotation
+    const startMonday = getStartOfWeek(new Date(startDate));
+    startMonday.setHours(0, 0, 0, 0);
+    const currentMonday = getStartOfWeek(new Date(today));
+    currentMonday.setHours(0, 0, 0, 0);
+    const diffTime = currentMonday - startMonday;
+    const weeksPassed = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
 
     const N = window.parkingState.spots.length;
-    const U = membersBase.length;
     const mold = window.buildMold(N, U);
 
     // Calculamos el desplazamiento para las etiquetas del molde
@@ -307,7 +334,7 @@ function openParkingMembersModal() {
         // Usamos (index + offset) % U para asignar la etiqueta rotada al nombre fijo
         const moldValue = mold[(index + (U - offset)) % U];
         const isSpot = moldValue.startsWith('P');
-        
+
         const statusText = isSpot ? "TIENE PLAZA" : "RESERVA";
         const statusColor = isSpot ? "text-emerald-400" : "text-amber-400";
         const bgColor = isSpot ? "bg-emerald-900/10 border-emerald-500/20" : "bg-slate-800/50 border-slate-700";
