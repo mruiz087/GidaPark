@@ -108,7 +108,7 @@ function rotateUsers(users, offset = 1) {
     if (effectiveOffset === 0) return [...users];
 
     // Rotate left: [0, 1, 2] offset 1 -> [1, 2, 0]
-    return [...users.slice(effectiveOffset), ...users.slice(0, effectiveOffset)];
+    return [...users.slice(-effectiveOffset), ...users.slice(0, len - effectiveOffset)];
 }
 
 /**
