@@ -354,9 +354,9 @@ function openParkingMembersModal() {
         `;
     }).join('');
 
-    // Show 'Edit Mold' button only for group owner
+    // Show 'Edit Mold' button only for group admin
     const editBtn = document.getElementById('btn-edit-mold');
-    if (editBtn) editBtn.classList.toggle('hidden', !window.parkingState.isOwner);
+    if (editBtn) editBtn.classList.toggle('hidden', !window.parkingState.isAdmin);
 
     // Show custom mold indicator
     const indicator = document.getElementById('mold-custom-indicator');

@@ -33,6 +33,7 @@ async function joinParkingGroup(groupId) {
             user_id: u.id,
             display_name: u.email.split('@')[0],
             order_index: (count || 0) + 1,
+            is_admin: (count === 0), // First member is admin
             routine: [1, 2, 3, 4, 5] // Mon-Fri by default
         };
 
@@ -100,10 +101,13 @@ async function loadParkingGroupDetail(groupId, groupName) {
 
     window.parkingState.customMold = resolvedMold;
 
-    // Detect owner: first member (lowest order_index) is the creator
+    // Detect admin status for current user
     const currentUid = (window.currentUser || window.user)?.id;
-    const firstMember = window.parkingState.members[0];
-    window.parkingState.isOwner = !!(firstMember && firstMember.user_id === currentUid);
+    const myMember = window.parkingState.members.find(m => m.user_id === currentUid);
+
+    // Check if user is admin (true if is_admin column is true, or fallback to order_index === 1)
+    window.parkingState.isAdmin = !!(myMember?.is_admin || (myMember?.order_index === 1));
+    console.log('[Parking] User admin status:', window.parkingState.isAdmin);
 
     // Fetch attendance for current range (will be called again by calendar render if range changes)
     await fetchAttendanceRange();
