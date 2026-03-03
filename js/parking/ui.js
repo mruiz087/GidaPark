@@ -162,7 +162,7 @@ function openParkingDayDetail(dateIsoStr) {
 
     const startDate = window.parkingState.startDate || new Date(2025, 0, 6);
     const weeksPassed = Math.floor((date - startDate) / (1000 * 60 * 60 * 24 * 7));
-    const mold = window.buildMold(N, U);
+    const mold = window.getMold(N, U);
     const rotationOffset = (U > N) ? weeksPassed : 0;
     const rotatedMembers = window.rotateUsers(window.parkingState.members, rotationOffset);
 
@@ -243,7 +243,7 @@ function getAssignmentsForDate(date) {
     const diffTime = currentMonday - startMonday;
     const weeksPassed = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
 
-    const mold = window.buildMold(N, U);
+    const mold = window.getMold(N, U);
     const rotationOffset = (U > N) ? weeksPassed : 0;
     const rotatedMembers = window.rotateUsers(window.parkingState.members, rotationOffset);
     const dayOfWeek = date.getDay() || 7;
@@ -324,7 +324,7 @@ function openParkingMembersModal() {
     const weeksPassed = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
 
     const N = window.parkingState.spots.length;
-    const mold = window.buildMold(N, U);
+    const mold = window.getMold(N, U);
 
     // Calculamos el desplazamiento para las etiquetas del molde
     const offset = (U > N) ? (weeksPassed % U) : 0;
@@ -353,6 +353,16 @@ function openParkingMembersModal() {
             </div>
         `;
     }).join('');
+
+    // Show 'Edit Mold' button only for group owner
+    const editBtn = document.getElementById('btn-edit-mold');
+    if (editBtn) editBtn.classList.toggle('hidden', !window.parkingState.isOwner);
+
+    // Show custom mold indicator
+    const indicator = document.getElementById('mold-custom-indicator');
+    if (indicator) {
+        indicator.classList.toggle('hidden', !window.parkingState.customMold);
+    }
 }
 
 function closeParkingMembersModal() {
@@ -457,3 +467,106 @@ async function handleDeleteSpot(id) {
     await window.deleteSpot(id);
     renderSpotsList();
 }
+
+// ========== MOLD EDITOR ==========
+let currentMoldDraft = []; // Temporary editable copy of the mold
+
+function openMoldEditorModal() {
+    const N = window.parkingState.spots.length;
+    const U = window.parkingState.members.length;
+    if (N === 0 || U === 0) return;
+
+    // Start with current active mold (custom or auto)
+    currentMoldDraft = [...window.getMold(N, U)];
+    renderMoldEditor();
+    document.getElementById('modal-mold-editor').classList.remove('hidden');
+}
+
+function closeMoldEditorModal() {
+    document.getElementById('modal-mold-editor').classList.add('hidden');
+    currentMoldDraft = [];
+}
+
+function renderMoldEditor() {
+    const list = document.getElementById('mold-editor-list');
+    if (!list) return;
+
+    const isCustomActive = !!window.parkingState.customMold;
+
+    list.innerHTML = currentMoldDraft.map((slot, index) => {
+        const isP = slot.startsWith('P');
+        const badgeColor = isP ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white';
+        const rowBg = isP ? 'bg-emerald-900/10 border-emerald-500/20' : 'bg-slate-800/50 border-slate-700';
+        const isFirst = index === 0;
+        const isLast = index === currentMoldDraft.length - 1;
+
+        return `
+            <div class="flex items-center gap-3 p-3 rounded-xl border ${rowBg} transition-all">
+                <span class="font-black text-xs px-2 py-1 rounded-lg ${badgeColor} min-w-[36px] text-center">${slot}</span>
+                <span class="flex-1 text-slate-400 text-[10px] uppercase font-bold">${isP ? 'Plaza' : 'Reserva'}</span>
+                <div class="flex gap-1">
+                    <button onclick="window.moveMoldSlot(${index}, -1)"
+                        class="w-8 h-8 rounded-lg ${isFirst ? 'bg-slate-800/30 text-slate-600 cursor-not-allowed' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} flex items-center justify-center text-xs font-black transition-all"
+                        ${isFirst ? 'disabled' : ''}>↑</button>
+                    <button onclick="window.moveMoldSlot(${index}, 1)"
+                        class="w-8 h-8 rounded-lg ${isLast ? 'bg-slate-800/30 text-slate-600 cursor-not-allowed' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} flex items-center justify-center text-xs font-black transition-all"
+                        ${isLast ? 'disabled' : ''}>↓</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Update header indicator
+    const statusEl = document.getElementById('mold-editor-status');
+    if (statusEl) {
+        if (isCustomActive) {
+            statusEl.innerHTML = `<span class="text-[9px] font-black text-amber-400 uppercase tracking-widest">✦ Molde personalizado activo</span>`;
+        } else {
+            statusEl.innerHTML = `<span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Molde automático</span>`;
+        }
+    }
+}
+
+function moveMoldSlot(index, direction) {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= currentMoldDraft.length) return;
+    // Swap
+    [currentMoldDraft[index], currentMoldDraft[newIndex]] = [currentMoldDraft[newIndex], currentMoldDraft[index]];
+    renderMoldEditor();
+}
+
+async function saveMoldEditor() {
+    if (currentMoldDraft.length === 0) return;
+    try {
+        await window.saveCustomMold([...currentMoldDraft]);
+        closeMoldEditorModal();
+        renderParkingCalendar();
+        showToast(t('parking.molde_guardado'));
+    } catch (e) {
+        console.error('saveMoldEditor error:', e);
+        showToast('❌ ' + (e?.message || 'Error al guardar el molde'));
+    }
+}
+
+async function resetMoldEditor() {
+    try {
+        await window.resetCustomMold();
+        // Refresh draft to auto mold
+        const N = window.parkingState.spots.length;
+        const U = window.parkingState.members.length;
+        currentMoldDraft = [...window.buildMold(N, U)];
+        renderMoldEditor();
+        renderParkingCalendar();
+        showToast(t('parking.molde_reseteado'));
+    } catch (e) {
+        showToast('Error al restablecer el molde');
+    }
+}
+
+// Register new global functions
+window.openMoldEditorModal = openMoldEditorModal;
+window.closeMoldEditorModal = closeMoldEditorModal;
+window.moveMoldSlot = moveMoldSlot;
+window.saveMoldEditor = saveMoldEditor;
+window.resetMoldEditor = resetMoldEditor;
+

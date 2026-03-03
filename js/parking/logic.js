@@ -160,9 +160,23 @@ function assign(users, mold, interests = []) {
     return result;
 }
 
+/**
+ * Returns the active mold: custom if set and valid length, otherwise auto-generated.
+ * @param {number} N Number of spots
+ * @param {number} U Number of users
+ * @returns {string[]} Active mold array
+ */
+function getMold(N, U) {
+    const custom = window.parkingState?.customMold;
+    if (custom && Array.isArray(custom) && custom.length === U) {
+        return custom;
+    }
+    return buildMold(N, U);
+}
+
 // Export for Node vs Browser
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { rOrder, buildMold, rotateUsers, assign };
+    module.exports = { rOrder, buildMold, getMold, rotateUsers, assign };
 } else {
-    Object.assign(window, { rOrder, buildMold, rotateUsers, assign });
+    Object.assign(window, { rOrder, buildMold, getMold, rotateUsers, assign });
 }

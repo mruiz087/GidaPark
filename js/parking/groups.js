@@ -5,7 +5,9 @@ window.parkingState = {
     members: [],
     spots: [], // P1, P2...
     mold: [],   // The logic mold [P1, R1, P2...]
-    attendance: {} // { "YYYY-MM-DD": [ { user_id, is_attending } ] }
+    attendance: {}, // { "YYYY-MM-DD": [ { user_id, is_attending } ] }
+    customMold: null, // Custom mold set by group owner, or null to use auto
+    isOwner: false    // Whether the current user is the group creator
 };
 
 // 1. Join Parking Group
@@ -63,16 +65,45 @@ async function loadParkingGroupDetail(groupId, groupName) {
     // 2. Load Data (Parallel) - Simplified Fetch
     const p1 = _supabase.schema('parking').from('members').select('*').eq('group_id', groupId).order('order_index');
     const p2 = _supabase.schema('parking').from('spots').select('*').eq('group_id', groupId).order('order_index');
-    const p3 = _supabase.from('groups').select('start_date').eq('id', groupId).single();
+    // Note: only select columns we know exist. Do NOT include 'created_by' unless confirmed in schema.
+    const p3 = _supabase.from('groups').select('start_date, custom_mold').eq('id', groupId).single();
 
     const [membersRes, spotsRes, groupRes] = await Promise.all([p1, p2, p3]);
 
     if (membersRes.error) console.error(membersRes.error);
     if (spotsRes.error) console.error(spotsRes.error);
+    if (groupRes.error) console.error('Error loading group data:', groupRes.error);
 
     window.parkingState.members = membersRes.data || [];
     window.parkingState.spots = spotsRes.data || [];
     window.parkingState.startDate = groupRes.data?.start_date ? new Date(groupRes.data.start_date) : new Date();
+
+    // Load custom mold — primary source: Supabase, fallback: localStorage
+    const rawCustomMold = groupRes.data?.custom_mold;
+    let resolvedMold = (Array.isArray(rawCustomMold) && rawCustomMold.length > 0) ? rawCustomMold : null;
+
+    if (!resolvedMold) {
+        // Supabase returned null — try localStorage fallback
+        const localVal = localStorage.getItem(`parking_custom_mold_${groupId}`);
+        if (localVal) {
+            try {
+                const parsed = JSON.parse(localVal);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    resolvedMold = parsed;
+                    console.log('[Parking] custom_mold loaded from localStorage fallback:', resolvedMold);
+                }
+            } catch (e) { /* ignore parse errors */ }
+        }
+    } else {
+        console.log('[Parking] custom_mold loaded from Supabase:', resolvedMold);
+    }
+
+    window.parkingState.customMold = resolvedMold;
+
+    // Detect owner: first member (lowest order_index) is the creator
+    const currentUid = (window.currentUser || window.user)?.id;
+    const firstMember = window.parkingState.members[0];
+    window.parkingState.isOwner = !!(firstMember && firstMember.user_id === currentUid);
 
     // Fetch attendance for current range (will be called again by calendar render if range changes)
     await fetchAttendanceRange();
@@ -184,6 +215,61 @@ async function deleteSpot(spotId) {
     await loadParkingGroupDetail(window.currentGroupId, document.getElementById('parking-group-title').innerText);
 }
 
+// 5. Custom Mold Management
+// localStorage key helper
+function _moldKey(groupId) { return `parking_custom_mold_${groupId}`; }
+
+async function saveCustomMold(moldArray) {
+    if (!window.currentGroupId) return;
+
+    // 1. Try to persist in Supabase
+    const { error: updateError } = await _supabase
+        .from('groups')
+        .update({ custom_mold: moldArray })
+        .eq('id', window.currentGroupId);
+
+    if (updateError) {
+        console.error('[Parking] Error updating custom_mold in Supabase:', updateError);
+        // Don't throw yet — we'll still save to localStorage below
+    }
+
+    // 2. Verify what Supabase actually stored (diagnostic)
+    const { data: verifyData, error: verifyError } = await _supabase
+        .from('groups')
+        .select('custom_mold')
+        .eq('id', window.currentGroupId)
+        .single();
+
+    console.log('[Parking] custom_mold in Supabase after save:', verifyData?.custom_mold, '| error:', verifyError?.message || null);
+
+    // 3. Always save to localStorage as reliable fallback
+    localStorage.setItem(_moldKey(window.currentGroupId), JSON.stringify(moldArray));
+    console.log('[Parking] custom_mold saved to localStorage for group', window.currentGroupId);
+
+    // 4. Update local state
+    window.parkingState.customMold = moldArray;
+
+    // 5. If Supabase update failed, throw so caller knows
+    if (updateError) throw updateError;
+}
+
+async function resetCustomMold() {
+    if (!window.currentGroupId) return;
+
+    const { error } = await _supabase
+        .from('groups')
+        .update({ custom_mold: null })
+        .eq('id', window.currentGroupId);
+
+    if (error) {
+        console.error('[Parking] Error resetting custom_mold:', error);
+        // Still clear localStorage even if Supabase fails
+    }
+
+    localStorage.removeItem(_moldKey(window.currentGroupId));
+    window.parkingState.customMold = null;
+}
+
 // Expose
 Object.assign(window, {
     joinParkingGroup,
@@ -193,5 +279,8 @@ Object.assign(window, {
     updateRoutine,
     toggleAttendance,
     fetchAttendanceRange,
+    saveCustomMold,
+    resetCustomMold,
     parkingState
 });
+

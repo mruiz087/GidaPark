@@ -988,14 +988,54 @@
                 <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1"
                     data-i18n="parking.miembros_desc">Lista general de
                     participantes</p>
+                <!-- Custom mold indicator -->
+                <div id="mold-custom-indicator" class="hidden mt-2">
+                    <span class="text-[9px] font-black text-amber-400 uppercase tracking-widest">✦ Molde personalizado activo</span>
+                </div>
             </div>
 
-            <div id="parking-members-list-general" class="space-y-3 max-h-[60vh] overflow-y-auto">
+            <div id="parking-members-list-general" class="space-y-3 max-h-[50vh] overflow-y-auto">
                 <!-- JS fills this -->
             </div>
 
+            <!-- Edit Mold button (only visible to owner, shown/hidden by JS) -->
+            <button id="btn-edit-mold" onclick="window.openMoldEditorModal()" class="hidden w-full py-3 rounded-xl bg-indigo-900/20 border border-indigo-500/30 text-indigo-400 font-black uppercase text-[10px] tracking-widest hover:bg-indigo-900/40 transition-all" data-i18n="parking.editar_molde">
+                ✏️ Editar Molde
+            </button>
+
             <button onclick="window.closeParkingMembersModal()"
                 class="w-full py-4 bg-slate-800 rounded-xl text-slate-400 font-bold uppercase text-xs">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- MODAL EDITOR MOLDE -->
+    <div id="modal-mold-editor" class="fixed inset-0 z-[210] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/85 backdrop-blur-sm" onclick="window.closeMoldEditorModal()"></div>
+        <div class="relative w-full max-w-sm bg-[#1e293b] rounded-[2rem] p-6 border border-slate-700 shadow-2xl space-y-4">
+            <div class="text-center">
+                <h3 class="text-lg font-black italic text-white uppercase" data-i18n="parking.molde_editor_titulo">Editar Molde de Rotación</h3>
+                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1" data-i18n="parking.molde_editor_desc">Reordena las posiciones de plaza y reserva</p>
+                <div id="mold-editor-status" class="mt-2"></div>
+            </div>
+
+            <div class="bg-slate-900/60 border border-slate-700 rounded-xl p-3">
+                <p class="text-[9px] text-slate-400 leading-relaxed">
+                    <i class="fas fa-info-circle text-indigo-400 mr-1"></i>
+                    Usa ↑↓ para mover las posiciones. Los usuarios rotarán sobre este orden cada semana.
+                </p>
+            </div>
+
+            <div id="mold-editor-list" class="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
+                <!-- JS fills this -->
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button onclick="window.resetMoldEditor()"
+                    class="py-3 bg-slate-800 rounded-xl text-slate-400 font-bold uppercase text-[10px] border border-slate-700 hover:bg-slate-700 transition-all"
+                    data-i18n="parking.molde_auto">↺ Auto</button>
+                <button onclick="window.saveMoldEditor()"
+                    class="py-3 bg-emerald-600 rounded-xl text-white font-black uppercase text-[10px] shadow-lg shadow-emerald-500/20 hover:bg-emerald-500 transition-all">Guardar</button>
+            </div>
         </div>
     </div>
 

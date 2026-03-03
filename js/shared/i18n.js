@@ -180,6 +180,12 @@ const translations = {
         'parking.move_down': 'Bajar',
         'parking.reorder_success': 'Orden actualizado',
         'parking.lang_code': 'es-ES',
+        'parking.editar_molde': '✏️ Editar Molde',
+        'parking.molde_editor_titulo': 'Editar Molde de Rotación',
+        'parking.molde_editor_desc': 'Reordena las posiciones de plaza y reserva',
+        'parking.molde_auto': '↺ Restablecer automático',
+        'parking.molde_guardado': '¡Molde personalizado guardado!',
+        'parking.molde_reseteado': 'Molde restablecido al automático',
 
         // Days of week
         'days': ['DO', 'LU', 'MA', 'MI', 'JU', 'VI', 'SA']
@@ -365,6 +371,12 @@ const translations = {
         'parking.move_down': 'Jaitsi',
         'parking.reorder_success': 'Ordena eguneratua',
         'parking.lang_code': 'eu-ES',
+        'parking.editar_molde': '✏️ Moldea Editatu',
+        'parking.molde_editor_titulo': 'Errotazio Moldea Editatu',
+        'parking.molde_editor_desc': 'Plaza eta erreserba posizioak berrantolatu',
+        'parking.molde_auto': '↺ Automatikoa Berrezarri',
+        'parking.molde_guardado': 'Molde pertsonalizatua gordeta!',
+        'parking.molde_reseteado': 'Moldea automatikora berrezarri da',
 
         // Days of week
         'days': ['IG', 'AL', 'AS', 'AZ', 'OG', 'OL', 'LA']
