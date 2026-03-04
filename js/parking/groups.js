@@ -67,7 +67,7 @@ async function loadParkingGroupDetail(groupId, groupName) {
     const p1 = _supabase.schema('parking').from('members').select('*').eq('group_id', groupId).order('order_index');
     const p2 = _supabase.schema('parking').from('spots').select('*').eq('group_id', groupId).order('order_index');
     // Note: only select columns we know exist. Do NOT include 'created_by' unless confirmed in schema.
-    const p3 = _supabase.from('groups').select('start_date, custom_mold').eq('id', groupId).single();
+    const p3 = _supabase.from('groups').select('created_at, custom_mold').eq('id', groupId).single();
 
     const [membersRes, spotsRes, groupRes] = await Promise.all([p1, p2, p3]);
 
@@ -77,7 +77,7 @@ async function loadParkingGroupDetail(groupId, groupName) {
 
     window.parkingState.members = membersRes.data || [];
     window.parkingState.spots = spotsRes.data || [];
-    window.parkingState.startDate = groupRes.data?.start_date ? new Date(groupRes.data.start_date) : new Date();
+    window.parkingState.startDate = groupRes.data?.created_at ? new Date(groupRes.data.created_at) : new Date();
 
     // Load custom mold — primary source: Supabase, fallback: localStorage
     // 1. Obtener el dato
