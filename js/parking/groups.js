@@ -67,7 +67,7 @@ async function loadParkingGroupDetail(groupId, groupName) {
     const p1 = _supabase.schema('parking').from('members').select('*').eq('group_id', groupId).order('order_index');
     const p2 = _supabase.schema('parking').from('spots').select('*').eq('group_id', groupId).order('order_index');
     // Note: only select columns we know exist. Do NOT include 'created_by' unless confirmed in schema.
-    const p3 = _supabase.from('groups').select('start_date, custom_mold').eq('id', groupId).single();
+    const p3 = _supabase.from('groups').select('created_at, custom_mold').eq('id', groupId).single();
 
     const [membersRes, spotsRes, groupRes] = await Promise.all([p1, p2, p3]);
 
@@ -77,10 +77,22 @@ async function loadParkingGroupDetail(groupId, groupName) {
 
     window.parkingState.members = membersRes.data || [];
     window.parkingState.spots = spotsRes.data || [];
-    window.parkingState.startDate = groupRes.data?.start_date ? new Date(groupRes.data.start_date) : new Date();
+    window.parkingState.startDate = groupRes.data?.created_at ? new Date(groupRes.data.created_at) : new Date();
 
     // Load custom mold — primary source: Supabase, fallback: localStorage
-    const rawCustomMold = groupRes.data?.custom_mold;
+    // 1. Obtener el dato
+    let rawCustomMold = groupRes.data?.custom_mold;
+    
+    // 2. Si es el formato string de Postgres "{a,b}", lo limpiamos
+    if (typeof rawCustomMold === 'string' && rawCustomMold.startsWith('{')) {
+        rawCustomMold = rawCustomMold.replace(/[{}]/g, '').split(',');
+    } 
+    // 3. Si es un string JSON standard
+    else if (typeof rawCustomMold === 'string') {
+        try { rawCustomMold = JSON.parse(rawCustomMold); } catch(e) { rawCustomMold = null; }
+    }
+    
+    // 4. Validar que sea un array con contenido
     let resolvedMold = (Array.isArray(rawCustomMold) && rawCustomMold.length > 0) ? rawCustomMold : null;
 
     if (!resolvedMold) {
