@@ -75,14 +75,21 @@ document.getElementById('btn-login').onclick = async () => {
     startApp();
 };
 
-function startApp() {
+async function startApp() {
     document.getElementById('auth-screen').classList.add('hidden');
     document.getElementById('auth-screen').classList.remove('flex');
     document.getElementById('app-content').classList.remove('hidden');
     document.getElementById('nav-bar').classList.remove('hidden');
     loadUserData();
     applyTranslations();
-    switchTab('inicio');
+
+    // Check if user has groups to decide initial tab
+    const groupIds = await getUserGroupIds();
+    if (groupIds.length > 0) {
+        switchTab('grupos');
+    } else {
+        switchTab('inicio');
+    }
 }
 
 function logout() {

@@ -11,6 +11,36 @@ function setCurrentGroup(group) {
     currentGroup = group;
 }
 
+async function getUserGroupIds() {
+    if (!currentUser) return [];
+
+    // Load flexible groups
+    const { data: flexMembers } = await _supabase.schema('flexible_carpooling')
+        .from('flexible_members')
+        .select('group_id')
+        .eq('user_id', currentUser.id);
+
+    // Load fixed groups
+    const { data: fixedMembers } = await _supabase.schema('fixed_carpooling')
+        .from('fixed_members')
+        .select('group_id')
+        .eq('user_id', currentUser.id);
+
+    // Load parking groups
+    const { data: parkingMembers, error: parkingErr } = await _supabase.schema('parking')
+        .from('members')
+        .select('group_id')
+        .eq('user_id', currentUser.id);
+
+    if (parkingErr) console.warn("Error fetching parking groups:", parkingErr);
+
+    const flexGroupIds = [...new Set((flexMembers || []).map(m => m.group_id))];
+    const fixedGroupIds = [...new Set((fixedMembers || []).map(m => m.group_id))];
+    const parkingGroupIds = [...new Set((parkingMembers || []).map(m => m.group_id))];
+
+    return [...flexGroupIds, ...fixedGroupIds, ...parkingGroupIds];
+}
+
 async function loadGroupDetail(groupId) {
     // Fetch group data to determine type
     const { data: group, error } = await _supabase
@@ -40,37 +70,7 @@ async function loadGroupDetail(groupId) {
 async function loadAllGroups() {
     if (!currentUser) return;
 
-    // Load flexible groups
-    const { data: flexMembers } = await _supabase.schema('flexible_carpooling')
-        .from('flexible_members')
-        .select('group_id')
-        .eq('user_id', currentUser.id);
-
-    // Load fixed groups
-    const { data: fixedMembers } = await _supabase.schema('fixed_carpooling')
-        .from('fixed_members')
-        .select('group_id')
-        .eq('user_id', currentUser.id);
-
-    // Load parking groups
-    const { data: parkingMembers, error: parkingErr } = await _supabase.schema('parking')
-        .from('members')
-        .select('group_id')
-        .eq('user_id', currentUser.id);
-
-    if (parkingErr) console.warn("Error fetching parking groups:", parkingErr);
-
-    const flexGroupIds = [...new Set((flexMembers || []).map(m => m.group_id))];
-    const fixedGroupIds = [...new Set((fixedMembers || []).map(m => m.group_id))];
-    const parkingGroupIds = [...new Set((parkingMembers || []).map(m => m.group_id))];
-
-    if (parkingGroupIds.length > 0) {
-        console.log("DEBUG: Found parking groups:", parkingGroupIds);
-    }
-
-    console.log("Found group IDs:", { flexible: flexGroupIds, fixed: fixedGroupIds, parking: parkingGroupIds });
-
-    const allGroupIds = [...flexGroupIds, ...fixedGroupIds, ...parkingGroupIds];
+    const allGroupIds = await getUserGroupIds();
 
     if (allGroupIds.length === 0) {
         document.getElementById('html-groups-list').innerHTML = `<p class="text-slate-500 text-xs uppercase font-bold pt-4">${t('shared.no_grupos')}</p>`;
