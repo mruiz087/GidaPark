@@ -80,12 +80,19 @@ async function loadParkingGroupDetail(groupId, groupName) {
     window.parkingState.startDate = groupRes.data?.start_date ? new Date(groupRes.data.start_date) : new Date();
 
     // Load custom mold — primary source: Supabase, fallback: localStorage
-    const rawCustomMold = groupRes.data?.custom_mold;
-
-    if (typeof rawCustomMold === 'string') {
+    // 1. Obtener el dato
+    let rawCustomMold = groupRes.data?.custom_mold;
+    
+    // 2. Si es el formato string de Postgres "{a,b}", lo limpiamos
+    if (typeof rawCustomMold === 'string' && rawCustomMold.startsWith('{')) {
+        rawCustomMold = rawCustomMold.replace(/[{}]/g, '').split(',');
+    } 
+    // 3. Si es un string JSON standard
+    else if (typeof rawCustomMold === 'string') {
         try { rawCustomMold = JSON.parse(rawCustomMold); } catch(e) { rawCustomMold = null; }
     }
     
+    // 4. Validar que sea un array con contenido
     let resolvedMold = (Array.isArray(rawCustomMold) && rawCustomMold.length > 0) ? rawCustomMold : null;
 
     if (!resolvedMold) {
