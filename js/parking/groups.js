@@ -81,6 +81,11 @@ async function loadParkingGroupDetail(groupId, groupName) {
 
     // Load custom mold — primary source: Supabase, fallback: localStorage
     const rawCustomMold = groupRes.data?.custom_mold;
+
+    if (typeof rawCustomMold === 'string') {
+        try { rawCustomMold = JSON.parse(rawCustomMold); } catch(e) { rawCustomMold = null; }
+    }
+    
     let resolvedMold = (Array.isArray(rawCustomMold) && rawCustomMold.length > 0) ? rawCustomMold : null;
 
     if (!resolvedMold) {
