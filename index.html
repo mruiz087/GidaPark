@@ -471,9 +471,9 @@
                 <div class="flex justify-between items-center px-2 mb-2">
                     <button onclick="changeWeek(-1)" class="p-2 text-slate-400"><i
                             class="fas fa-chevron-left"></i></button>
-                    <div class="text-center">
+                    <div class="text-center flex-1">
                         <h3 id="parking-month-year"
-                            class="font-black uppercase italic text-white text-sm tracking-widest">
+                            class="font-black uppercase italic text-white text-sm tracking-widest leading-tight">
                         </h3>
                         <p id="parking-group-title"
                             class="text-[9px] text-emerald-400 font-bold uppercase tracking-widest opacity-80"></p>
@@ -487,9 +487,14 @@
                     <div id="parking-calendar-grid" class="grid grid-cols-7 gap-2"></div>
 
                     <div class="mt-8 px-4 pb-4 space-y-3">
-                        <button onclick="refreshParkingData()"
-                            class="w-full p-4 rounded-2xl bg-emerald-900/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-900/40 transition-all"
-                            data-i18n="shared.refrescar">Refrescar</button>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="refreshParkingData()"
+                                class="w-full p-4 rounded-2xl bg-sky-900/20 border border-sky-500/30 text-sky-400 text-[10px] font-black uppercase tracking-widest hover:bg-sky-900/40 transition-all"
+                                data-i18n="shared.refrescar">Refrescar</button>
+                            <button onclick="changeWeek(0)"
+                                class="w-full p-4 rounded-2xl bg-emerald-900/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-900/40 transition-all"
+                                data-i18n="parking.hoy">Semana Actual</button>
+                        </div>
 
                         <button onclick="window.openParkingMembersModal()"
                             class="w-full p-4 rounded-2xl bg-indigo-900/20 border border-indigo-500/30 text-indigo-400 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-900/40 transition-all"
@@ -990,7 +995,8 @@
                     participantes</p>
                 <!-- Custom mold indicator -->
                 <div id="mold-custom-indicator" class="hidden mt-2">
-                    <span class="text-[9px] font-black text-amber-400 uppercase tracking-widest">✦ Molde personalizado activo</span>
+                    <span class="text-[9px] font-black text-amber-400 uppercase tracking-widest">✦ Molde personalizado
+                        activo</span>
                 </div>
             </div>
 
@@ -999,7 +1005,9 @@
             </div>
 
             <!-- Edit Mold button (only visible to owner, shown/hidden by JS) -->
-            <button id="btn-edit-mold" onclick="window.openMoldEditorModal()" class="hidden w-full py-3 rounded-xl bg-indigo-900/20 border border-indigo-500/30 text-indigo-400 font-black uppercase text-[10px] tracking-widest hover:bg-indigo-900/40 transition-all" data-i18n="parking.editar_molde">
+            <button id="btn-edit-mold" onclick="window.openMoldEditorModal()"
+                class="hidden w-full py-3 rounded-xl bg-indigo-900/20 border border-indigo-500/30 text-indigo-400 font-black uppercase text-[10px] tracking-widest hover:bg-indigo-900/40 transition-all"
+                data-i18n="parking.editar_molde">
                 ✏️ Editar Molde
             </button>
 
@@ -1011,10 +1019,13 @@
     <!-- MODAL EDITOR MOLDE -->
     <div id="modal-mold-editor" class="fixed inset-0 z-[210] hidden flex items-center justify-center p-6">
         <div class="absolute inset-0 bg-black/85 backdrop-blur-sm" onclick="window.closeMoldEditorModal()"></div>
-        <div class="relative w-full max-w-sm bg-[#1e293b] rounded-[2rem] p-6 border border-slate-700 shadow-2xl space-y-4">
+        <div
+            class="relative w-full max-w-sm bg-[#1e293b] rounded-[2rem] p-6 border border-slate-700 shadow-2xl space-y-4">
             <div class="text-center">
-                <h3 class="text-lg font-black italic text-white uppercase" data-i18n="parking.molde_editor_titulo">Editar Molde de Rotación</h3>
-                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1" data-i18n="parking.molde_editor_desc">Reordena las posiciones de plaza y reserva</p>
+                <h3 class="text-lg font-black italic text-white uppercase" data-i18n="parking.molde_editor_titulo">
+                    Editar Molde de Rotación</h3>
+                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mt-1"
+                    data-i18n="parking.molde_editor_desc">Reordena las posiciones de plaza y reserva</p>
                 <div id="mold-editor-status" class="mt-2"></div>
             </div>
 

@@ -185,7 +185,9 @@ const translations = {
         'parking.molde_editor_desc': 'Reordena las posiciones de plaza y reserva',
         'parking.molde_auto': '↺ Restablecer automático',
         'parking.molde_guardado': '¡Molde personalizado guardado!',
-        'parking.molde_reseteado': 'Molde restablecido al automático',
+        'parking.molde_reseteated': 'Molde restablecido al automático',
+        'parking.semana': 'S',
+        'parking.hoy': 'Semana Actual',
 
         // Days of week
         'days': ['DO', 'LU', 'MA', 'MI', 'JU', 'VI', 'SA']
@@ -376,7 +378,9 @@ const translations = {
         'parking.molde_editor_desc': 'Plaza eta erreserba posizioak berrantolatu',
         'parking.molde_auto': '↺ Automatikoa Berrezarri',
         'parking.molde_guardado': 'Molde pertsonalizatua gordeta!',
-        'parking.molde_reseteado': 'Moldea automatikora berrezarri da',
+        'parking.molde_reseteated': 'Moldea automatikora berrezarri da',
+        'parking.semana': 'S',
+        'parking.hoy': 'Aurtengo astea',
 
         // Days of week
         'days': ['IG', 'AL', 'AS', 'AZ', 'OG', 'OL', 'LA']

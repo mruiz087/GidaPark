@@ -9,8 +9,20 @@ function getStartOfWeek(date) {
     return new Date(d.setDate(diff));
 }
 
+function getISOWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
 function changeWeek(offset) {
-    currentWeekOffset += offset;
+    if (offset === 0) {
+        currentWeekOffset = 0;
+    } else {
+        currentWeekOffset += offset;
+    }
     renderParkingCalendar();
 }
 
@@ -32,8 +44,9 @@ function renderParkingCalendar() {
     const options = { month: 'short', day: 'numeric' };
     const dateRange = `${viewStart.toLocaleDateString('es-ES', options)} - ${endOfWeek.toLocaleDateString('es-ES', options)}`;
     const year = viewStart.getFullYear();
+    const weekNum = getISOWeekNumber(viewStart);
 
-    document.getElementById('parking-month-year').innerText = `${dateRange} ${year}`;
+    document.getElementById('parking-month-year').innerText = `${dateRange} ${year} (${t('parking.semana')}${weekNum})`;
 
     // Update buttons in index.html to call changeWeek instead of changeMonth
     // We might need to override the onclick attributes dynamically or hardcode them in HTML
