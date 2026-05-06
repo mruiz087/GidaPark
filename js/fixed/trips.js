@@ -180,6 +180,7 @@ async function tomarRelevo() {
                     amount: 1
                 });
             }
+            await simplificarDeudas(currentGroupId);
             showToast(t('fixed.relevo_tomado'));
         } else {
             showToast(t('fixed.mando_viaje'));

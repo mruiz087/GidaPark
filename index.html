@@ -323,6 +323,9 @@
             <button id="btn-login"
                 class="w-full bg-indigo-600 py-4 rounded-2xl font-black uppercase text-xs tracking-widest">Entrar /
                 Registro</button>
+            <button onclick="openForgotPassword()"
+                class="w-full text-xs font-bold text-slate-500 uppercase underline pt-1"
+                data-i18n="shared.forgot_password">¿Olvidaste tu contraseña?</button>
         </div>
     </div>
 
@@ -1057,6 +1060,55 @@
 
     <!-- App initialization (must be last) -->
     <script src="js/shared/app.js"></script>
+
+    <!-- Modal Recuperar Contraseña -->
+    <div id="modal-forgot-password"
+        class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-6 z-[300]">
+        <div class="card-dark w-full max-w-sm p-8 rounded-[2.5rem] space-y-5 border border-slate-700">
+            <div class="text-center space-y-1">
+                <i class="fas fa-envelope text-3xl text-indigo-400"></i>
+                <h3 class="font-black italic text-indigo-400 uppercase" data-i18n="shared.forgot_password_title">
+                    Recuperar Contraseña</h3>
+                <p class="text-xs text-slate-400" data-i18n="shared.forgot_password_desc">Te enviaremos un enlace a tu
+                    email.</p>
+            </div>
+            <input type="email" id="reset-email"
+                class="w-full p-4 bg-slate-900 rounded-2xl border-none text-white text-sm" placeholder="Email"
+                data-i18n="shared.email_placeholder">
+            <div id="forgot-feedback" class="hidden text-xs text-center font-bold rounded-xl py-2 px-3"></div>
+            <div class="flex gap-3 pt-1">
+                <button onclick="closeForgotPassword()" class="flex-1 text-xs font-bold text-slate-500 uppercase"
+                    data-i18n="shared.cancelar">Cancelar</button>
+                <button id="btn-send-reset" onclick="sendResetEmail()"
+                    class="flex-1 bg-indigo-600 py-4 rounded-2xl font-black text-xs uppercase shadow-lg shadow-indigo-600/30"
+                    data-i18n="shared.send_reset_email">Enviar enlace</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nueva Contraseña (tras clic en email) -->
+    <div id="modal-new-password"
+        class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-6 z-[300]">
+        <div class="card-dark w-full max-w-sm p-8 rounded-[2.5rem] space-y-5 border border-slate-700">
+            <div class="text-center space-y-1">
+                <i class="fas fa-lock text-3xl text-indigo-400"></i>
+                <h3 class="font-black italic text-indigo-400 uppercase" data-i18n="shared.new_password_title">Nueva
+                    Contraseña</h3>
+                <p class="text-xs text-slate-400" data-i18n="shared.new_password_desc">Introduce tu nueva contraseña.
+                </p>
+            </div>
+            <input type="password" id="new-password-input"
+                class="w-full p-4 bg-slate-900 rounded-2xl border-none text-white text-sm"
+                placeholder="Nueva contraseña" data-i18n="shared.new_password_placeholder">
+            <input type="password" id="confirm-password-input"
+                class="w-full p-4 bg-slate-900 rounded-2xl border-none text-white text-sm"
+                placeholder="Confirmar contraseña" data-i18n="shared.confirm_password_placeholder">
+            <div id="new-password-feedback" class="hidden text-xs text-center font-bold rounded-xl py-2 px-3"></div>
+            <button id="btn-update-password" onclick="updateNewPassword()"
+                class="w-full bg-indigo-600 py-4 rounded-2xl font-black text-xs uppercase shadow-lg shadow-indigo-600/30"
+                data-i18n="shared.update_password">Guardar contraseña</button>
+        </div>
+    </div>
 
 </body>
 

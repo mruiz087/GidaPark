@@ -1,5 +1,148 @@
 // --- GESTIÓN DE DEUDAS ---
 
+/**
+ * Simplifica las deudas del grupo actual:
+ * 1. Netting mutuo: si A→B y B→A existen, se compensan y queda sólo la neta.
+ * 2. Cadenas: si A→B y B→C existen, se crea A→C y se reducen A→B y B→C.
+ * Se llama tras cualquier creación/incremento de deuda.
+ */
+async function simplificarDeudas(groupId) {
+    try {
+        // Obtener todas las deudas activas del grupo
+        const { data: debts, error } = await _supabase
+            .schema('fixed_carpooling').from('fixed_debts')
+            .select('*')
+            .eq('group_id', groupId)
+            .gt('amount', 0);
+
+        if (error || !debts || debts.length === 0) return;
+
+        let changed = true;
+        let iterations = 0;
+        const MAX_ITER = 20; // Seguridad ante bucles infinitos
+
+        while (changed && iterations < MAX_ITER) {
+            changed = false;
+            iterations++;
+
+            // Recargar deudas tras cada ronda de cambios
+            const { data: currentDebts } = await _supabase
+                .schema('fixed_carpooling').from('fixed_debts')
+                .select('*')
+                .eq('group_id', groupId)
+                .gt('amount', 0);
+
+            if (!currentDebts || currentDebts.length === 0) break;
+
+            // --- PASO 1: Netting mutuo (A→B y B→A) ---
+            for (const d of currentDebts) {
+                const inverse = currentDebts.find(
+                    x => x.creditor_id === d.debtor_id &&
+                         x.debtor_id  === d.creditor_id &&
+                         x.id !== d.id
+                );
+                if (!inverse) continue;
+
+                const net = d.amount - inverse.amount;
+                changed = true;
+
+                if (net > 0) {
+                    // Queda deuda a favor de d.creditor_id
+                    await _supabase.schema('fixed_carpooling').from('fixed_debts')
+                        .update({ amount: net }).eq('id', d.id);
+                    await _supabase.schema('fixed_carpooling').from('fixed_debts')
+                        .delete().eq('id', inverse.id);
+                } else if (net < 0) {
+                    // Queda deuda a favor de inverse.creditor_id
+                    await _supabase.schema('fixed_carpooling').from('fixed_debts')
+                        .update({ amount: -net }).eq('id', inverse.id);
+                    await _supabase.schema('fixed_carpooling').from('fixed_debts')
+                        .delete().eq('id', d.id);
+                } else {
+                    // Se anulan completamente
+                    await _supabase.schema('fixed_carpooling').from('fixed_debts')
+                        .delete().eq('id', d.id);
+                    await _supabase.schema('fixed_carpooling').from('fixed_debts')
+                        .delete().eq('id', inverse.id);
+                }
+                break; // Reiniciar bucle con datos frescos
+            }
+
+            if (changed) continue; // Priorizar netting antes de cadenas
+
+            // --- PASO 2: Simplificación de cadenas (A→B y B→C → A→C) ---
+            // Recargar tras el netting
+            const { data: chainDebts } = await _supabase
+                .schema('fixed_carpooling').from('fixed_debts')
+                .select('*')
+                .eq('group_id', groupId)
+                .gt('amount', 0);
+
+            if (!chainDebts) break;
+
+            for (const ab of chainDebts) {
+                // Buscar B→C donde C ≠ A
+                const bc = chainDebts.find(
+                    x => x.creditor_id === ab.debtor_id &&
+                         x.debtor_id   !== ab.creditor_id &&
+                         x.id          !== ab.id
+                );
+                if (!bc) continue;
+
+                const transfer = Math.min(ab.amount, bc.amount);
+                changed = true;
+
+                // Reducir A→B
+                if (ab.amount - transfer <= 0) {
+                    await _supabase.schema('fixed_carpooling').from('fixed_debts')
+                        .delete().eq('id', ab.id);
+                } else {
+                    await _supabase.schema('fixed_carpooling').from('fixed_debts')
+                        .update({ amount: ab.amount - transfer }).eq('id', ab.id);
+                }
+
+                // Reducir B→C
+                if (bc.amount - transfer <= 0) {
+                    await _supabase.schema('fixed_carpooling').from('fixed_debts')
+                        .delete().eq('id', bc.id);
+                } else {
+                    await _supabase.schema('fixed_carpooling').from('fixed_debts')
+                        .update({ amount: bc.amount - transfer }).eq('id', bc.id);
+                }
+
+                // Crear o incrementar deuda directa: C le debe a A
+                // ab: creditor=A, debtor=B  → B le debe a A
+                // bc: creditor=B, debtor=C  → C le debe a B
+                // Simplificado: creditor=A, debtor=C → C le debe a A
+                const { data: acExisting } = await _supabase
+                    .schema('fixed_carpooling').from('fixed_debts')
+                    .select('*')
+                    .eq('group_id', groupId)
+                    .eq('creditor_id', ab.creditor_id)  // A
+                    .eq('debtor_id', bc.debtor_id)      // C
+                    .maybeSingle();
+
+                if (acExisting) {
+                    await _supabase.schema('fixed_carpooling').from('fixed_debts')
+                        .update({ amount: acExisting.amount + transfer })
+                        .eq('id', acExisting.id);
+                } else {
+                    await _supabase.schema('fixed_carpooling').from('fixed_debts').insert({
+                        group_id: groupId,
+                        creditor_id: ab.creditor_id,  // A
+                        debtor_id: bc.debtor_id,      // C
+                        amount: transfer
+                    });
+                }
+
+                break; // Reiniciar con datos frescos
+            }
+        }
+    } catch (err) {
+        console.error('Error al simplificar deudas:', err);
+    }
+}
+
 async function abrirCanjeDeuda() {
     const date = document.getElementById('modal-viaje').dataset.date;
     const listContainer = document.getElementById('deudas-list');
@@ -100,7 +243,7 @@ async function ejecutarUnionPuntual(trip) {
             .eq('group_id', currentGroup.id)
             .eq('creditor_id', trip.effective_id)
             .eq('debtor_id', currentUser.id)
-            .single();
+            .maybeSingle();
 
         if (existingDebt) {
             await _supabase.schema('fixed_carpooling').from('fixed_debts').update({ amount: (existingDebt.amount || 0) + 1 }).eq('id', existingDebt.id);
@@ -112,6 +255,8 @@ async function ejecutarUnionPuntual(trip) {
                 amount: 1
             });
         }
+
+        await simplificarDeudas(currentGroup.id);
 
         showToast(t('fixed.unido_viaje'));
         await refreshFixedData();
@@ -183,6 +328,8 @@ async function crearDeudaManual(deudorId) {
             });
         }
 
+        await simplificarDeudas(currentGroup.id);
+
         const deudor = state.members.find(m => m.user_id === deudorId);
         showToast(t('fixed.deuda_creada') + ": " + (deudor?.display_name || 'Usuario'));
 
@@ -249,5 +396,6 @@ Object.assign(window, {
     ejecutarUnionPuntual,
     abrirCrearDeuda,
     crearDeudaManual,
-    abrirTablaDeudas
+    abrirTablaDeudas,
+    simplificarDeudas
 });
