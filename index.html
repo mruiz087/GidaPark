@@ -1019,6 +1019,56 @@
         </div>
     </div>
 
+    <!-- MODAL SELECCIÓN TIPO DE PLAZA -->
+    <div id="modal-spot-type-selection" class="fixed inset-0 z-[210] hidden flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/85 backdrop-blur-sm" onclick="closeSpotTypeSelectionModal()"></div>
+        <div class="relative w-full max-w-sm bg-[#1e293b] rounded-[2rem] p-8 border border-slate-700 shadow-2xl space-y-6">
+            <div class="text-center">
+                <h3 class="text-xl font-black italic text-white uppercase">Tipo de Plaza</h3>
+                <p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mt-2">Selecciona tu tipo de plaza</p>
+            </div>
+
+            <div class="space-y-3">
+                <button onclick="selectSpotType('shared')"
+                    class="w-full p-4 bg-emerald-600/20 border border-emerald-500/50 rounded-xl text-left hover:bg-emerald-600/40 transition-all">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-users text-emerald-400 text-xl"></i>
+                        <div>
+                            <span class="block font-bold text-white">Plaza Compartida</span>
+                            <span class="text-[9px] text-emerald-300 uppercase">Rota con otros usuarios</span>
+                        </div>
+                    </div>
+                </button>
+
+                <button onclick="selectSpotType('fixed')"
+                    class="w-full p-4 bg-indigo-600/20 border border-indigo-500/50 rounded-xl text-left hover:bg-indigo-600/40 transition-all">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-lock text-indigo-400 text-xl"></i>
+                        <div>
+                            <span class="block font-bold text-white">Plaza Fija</span>
+                            <span class="text-[9px] text-indigo-300 uppercase">Plaza permanente exclusiva</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Input para nombre de plaza fija (oculto por defecto) -->
+            <div id="fixed-spot-name-container" class="hidden space-y-3">
+                <input type="text" id="fixed-spot-name-input" placeholder="Nombre de tu plaza (ej: P1-23)"
+                    class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:border-indigo-500 outline-none">
+                <button onclick="confirmFixedSpot()"
+                    class="w-full bg-indigo-600 py-3 rounded-xl font-black uppercase text-xs hover:bg-indigo-700 transition-all">
+                    Confirmar Plaza Fija
+                </button>
+            </div>
+
+            <button onclick="closeSpotTypeSelectionModal()"
+                class="w-full py-3 bg-slate-800 rounded-xl text-slate-400 font-bold uppercase text-[10px] border border-slate-700 hover:bg-slate-700 transition-all">
+                Cancelar
+            </button>
+        </div>
+    </div>
+
     <!-- MODAL EDITOR MOLDE -->
     <div id="modal-mold-editor" class="fixed inset-0 z-[210] hidden flex items-center justify-center p-6">
         <div class="absolute inset-0 bg-black/85 backdrop-blur-sm" onclick="window.closeMoldEditorModal()"></div>

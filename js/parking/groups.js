@@ -11,17 +11,47 @@ window.parkingState = {
 };
 
 // 1. Join Parking Group
-async function joinParkingGroup(groupId) {
+async function joinParkingGroup(groupId, spotType = 'shared', fixedSpotName = null) {
     const u = window.currentUser || window.user;
     if (!u) {
         console.error("joinParkingGroup Error: No user logged in");
         return;
     }
 
-    console.log("joinParkingGroup start for:", u.id, "target group:", groupId);
+    console.log("joinParkingGroup start for:", u.id, "target group:", groupId, "spotType:", spotType);
 
     try {
-        // Get member count to assign order_index
+        let fixedSpotId = null;
+
+        // If fixed spot, create the spot first
+        if (spotType === 'fixed' && fixedSpotName) {
+            // Get max order for spots
+            const { data: existingSpots } = await _supabase.schema('parking').from('spots')
+                .select('order_index')
+                .eq('group_id', groupId)
+                .order('order_index', { ascending: false })
+                .limit(1);
+            
+            const maxOrder = existingSpots?.[0]?.order_index || 0;
+
+            const { data: newSpot, error: spotError } = await _supabase.schema('parking').from('spots').insert({
+                group_id: groupId,
+                name: fixedSpotName,
+                order_index: maxOrder + 1,
+                is_fixed_spot: true,
+                owner_id: u.id
+            }).select().single();
+
+            if (spotError) {
+                console.error("Error creating fixed spot:", spotError);
+                throw spotError;
+            }
+
+            fixedSpotId = newSpot.id;
+            console.log("Created fixed spot:", newSpot);
+        }
+
+        // Get member count to assign order_index (only for shared spots)
         const { count, error: countErr } = await _supabase.schema('parking').from('members')
             .select('*', { count: 'exact', head: true })
             .eq('group_id', groupId);
@@ -34,7 +64,9 @@ async function joinParkingGroup(groupId) {
             display_name: u.email.split('@')[0],
             order_index: (count || 0) + 1,
             is_admin: (count === 0), // First member is admin
-            routine: [1, 2, 3, 4, 5] // Mon-Fri by default
+            routine: [1, 2, 3, 4, 5], // Mon-Fri by default
+            has_fixed_spot: (spotType === 'fixed'),
+            fixed_spot_id: fixedSpotId
         };
 
         const { error } = await _supabase.schema('parking').from('members').insert(memberData);
@@ -286,6 +318,45 @@ async function resetCustomMold() {
     window.parkingState.customMold = null;
 }
 
+// Spot Type Selection Modal Functions
+let pendingGroupId = null;
+
+function openSpotTypeSelectionModal(groupId) {
+    pendingGroupId = groupId;
+    document.getElementById('modal-spot-type-selection').classList.remove('hidden');
+    document.getElementById('fixed-spot-name-container').classList.add('hidden');
+    document.getElementById('fixed-spot-name-input').value = '';
+}
+
+function closeSpotTypeSelectionModal() {
+    document.getElementById('modal-spot-type-selection').classList.add('hidden');
+    pendingGroupId = null;
+}
+
+function selectSpotType(type) {
+    if (type === 'shared') {
+        if (pendingGroupId) {
+            joinParkingGroup(pendingGroupId, 'shared');
+            closeSpotTypeSelectionModal();
+        }
+    } else if (type === 'fixed') {
+        document.getElementById('fixed-spot-name-container').classList.remove('hidden');
+    }
+}
+
+function confirmFixedSpot() {
+    const spotName = document.getElementById('fixed-spot-name-input').value.trim();
+    if (!spotName) {
+        alert('Por favor, introduce un nombre para tu plaza fija');
+        return;
+    }
+    
+    if (pendingGroupId) {
+        joinParkingGroup(pendingGroupId, 'fixed', spotName);
+        closeSpotTypeSelectionModal();
+    }
+}
+
 // Expose
 Object.assign(window, {
     joinParkingGroup,
@@ -297,6 +368,10 @@ Object.assign(window, {
     fetchAttendanceRange,
     saveCustomMold,
     resetCustomMold,
-    parkingState
+    parkingState,
+    openSpotTypeSelectionModal,
+    closeSpotTypeSelectionModal,
+    selectSpotType,
+    confirmFixedSpot
 });
 

@@ -164,10 +164,23 @@ function assign(users, mold, interests = []) {
  * Returns the active mold: custom if set and valid length, otherwise auto-generated.
  * @param {number} N Number of spots
  * @param {number} U Number of users
+ * @param {boolean} excludeFixedSpots Whether to exclude users with fixed spots from the mold
  * @returns {string[]} Active mold array
  */
-function getMold(N, U) {
+function getMold(N, U, excludeFixedSpots = false) {
     const custom = window.parkingState?.customMold;
+    
+    // If excluding fixed spots, we need to recalculate U based on shared users only
+    if (excludeFixedSpots) {
+        const sharedUsers = window.parkingState?.members?.filter(m => !m.has_fixed_spot) || [];
+        const sharedU = sharedUsers.length;
+        
+        if (custom && Array.isArray(custom) && custom.length === sharedU) {
+            return custom;
+        }
+        return buildMold(N, sharedU);
+    }
+    
     if (custom && Array.isArray(custom) && custom.length === U) {
         return custom;
     }

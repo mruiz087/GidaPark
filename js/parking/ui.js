@@ -88,6 +88,7 @@ function renderParkingCalendar() {
         const myAssign = assignments.find(a => a.user.user_id === myId);
         const isMyTurn = myAssign && myAssign.isAttending;
         const hasSpot = myAssign && myAssign.finalSpotName !== null;
+        const isFixedSpot = myAssign && myAssign.isFixedSpot;
 
         // isReserve is true if I am attending but have no spot
         const isReserve = isMyTurn && !hasSpot;
@@ -104,7 +105,8 @@ function renderParkingCalendar() {
 
         let spotAnnotation = '';
         if (hasSpot) {
-            spotAnnotation = `<span class="text-[8px] font-black text-emerald-400 uppercase mt-1 leading-none">${myAssign.finalSpotName}</span>`;
+            const lockIcon = isFixedSpot ? '<i class="fas fa-lock text-[6px] mr-0.5"></i>' : '';
+            spotAnnotation = `<span class="text-[8px] font-black text-emerald-400 uppercase mt-1 leading-none">${lockIcon}${myAssign.finalSpotName}</span>`;
         } else if (isReserve) {
             // Check if I was originally a spot owner but marked as not attending?
             // "isReserve" here means current status. If I am R1 and get P1, hasSpot is true.
@@ -190,11 +192,70 @@ function openParkingDayDetail(dateIsoStr) {
     // 2. Reuse shared logic
     const assignments = getAssignmentsForDate(date);
 
-    // --- RENDERIZADO (Usando el array 'assignments' original para mantener el orden visual) ---
+    // --- RENDERIZADO (Separar fijos de compartidos) ---
     const list = document.getElementById('parking-assignments-list');
-    list.innerHTML = assignments.map((a) => {
+    
+    const fixedSpotAssignments = assignments.filter(a => a.isFixedSpot);
+    const sharedAssignments = assignments.filter(a => !a.isFixedSpot);
+    
+    let html = '';
+    
+    // Sección de plazas fijas
+    if (fixedSpotAssignments.length > 0) {
+        html += `<div class="mb-4">
+            <h4 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <i class="fas fa-lock"></i> Plazas Fijas
+            </h4>`;
+        
+        html += fixedSpotAssignments.map((a) => {
+            const isMe = a.user.user_id === currentUser.id;
+            
+            let statusLabel = "NO ASISTE";
+            let statusColor = "text-slate-500";
+            let rowBg = "bg-slate-800/50 border-slate-700";
+            let badgeText = a.spotName || 'Unknown';
+            
+            if (a.isAttending) {
+                statusLabel = "EN SU PLAZA";
+                statusColor = "text-indigo-400";
+                rowBg = "bg-indigo-900/20 border-indigo-500/30";
+                badgeText = a.spotName;
+            } else {
+                statusLabel = "PLAZA LIBRE";
+                statusColor = "text-emerald-400";
+                rowBg = "bg-emerald-900/10 border-emerald-500/20";
+            }
+            
+            return `
+                <div class="flex items-center justify-between p-3 rounded-xl border ${rowBg} ${isMe ? 'ring-1 ring-indigo-400' : ''} ${!a.isAttending ? 'opacity-50' : ''}">
+                    <div class="flex items-center gap-3">
+                        <div class="flex flex-col">
+                            <span class="text-white font-bold text-sm ${isMe ? 'text-indigo-300' : ''}">${a.user.display_name}</span>
+                            <span class="text-[10px] uppercase tracking-widest font-black ${statusColor}">${statusLabel}</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-black text-xs px-3 py-1.5 rounded-lg ${a.isAttending ? 'bg-indigo-500 text-white' : 'bg-emerald-500/20 text-emerald-400'}">
+                            <i class="fas fa-lock text-[8px] mr-1"></i>${badgeText}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        html += `</div>`;
+    }
+    
+    // Sección de plazas compartidas
+    html += `<div>
+        <h4 class="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+            <i class="fas fa-users"></i> Plazas Compartidas
+        </h4>`;
+    
+    html += sharedAssignments.map((a) => {
         const isMe = a.user.user_id === currentUser.id;
         const isOriginalOwner = a.moldValue.startsWith('P');
+        const assignedFixedSpot = a.assignedFixedSpot;
 
         let statusLabel = "DESAPUNTADO";
         let statusColor = "text-slate-500";
@@ -203,9 +264,15 @@ function openParkingDayDetail(dateIsoStr) {
 
         if (a.isAttending) {
             if (a.finalSpotName) {
-                statusLabel = isOriginalOwner ? "TIENE PLAZA" : "RESERVA CON PLAZA";
-                statusColor = "text-emerald-400";
-                rowBg = "bg-emerald-900/20 border-emerald-500/30";
+                if (assignedFixedSpot) {
+                    statusLabel = "PLAZA FIJA ASIGNADA";
+                    statusColor = "text-indigo-400";
+                    rowBg = "bg-indigo-900/20 border-indigo-500/30";
+                } else {
+                    statusLabel = isOriginalOwner ? "TIENE PLAZA" : "RESERVA CON PLAZA";
+                    statusColor = "text-emerald-400";
+                    rowBg = "bg-emerald-900/20 border-emerald-500/30";
+                }
                 badgeText = a.finalSpotName;
             } else {
                 statusLabel = "EN RESERVA";
@@ -215,7 +282,7 @@ function openParkingDayDetail(dateIsoStr) {
         }
 
         return `
-            <div class="flex items-center justify-between p-4 rounded-xl border ${rowBg} ${isMe ? 'ring-1 ring-emerald-400' : ''} ${!a.isAttending ? 'opacity-40' : ''}">
+            <div class="flex items-center justify-between p-3 rounded-xl border ${rowBg} ${isMe ? 'ring-1 ring-emerald-400' : ''} ${!a.isAttending ? 'opacity-40' : ''}">
                 <div class="flex items-center gap-3">
                     <div class="flex flex-col">
                         <span class="text-white font-bold text-sm ${isMe ? 'text-emerald-300' : ''}">${a.user.display_name}</span>
@@ -226,13 +293,17 @@ function openParkingDayDetail(dateIsoStr) {
                     </div>
                 </div>
                 <div class="text-right">
-                    <span class="font-black text-xs px-3 py-1.5 rounded-lg ${a.finalSpotName ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-400'}">
-                        ${badgeText}
+                    <span class="font-black text-xs px-3 py-1.5 rounded-lg ${a.finalSpotName ? (assignedFixedSpot ? 'bg-indigo-500 text-white' : 'bg-emerald-500 text-white') : 'bg-slate-700 text-slate-400'}">
+                        ${assignedFixedSpot ? '<i class="fas fa-lock text-[8px] mr-1"></i>' : ''}${badgeText}
                     </span>
                 </div>
             </div>
         `;
     }).join('');
+    
+    html += `</div>`;
+    
+    list.innerHTML = html;
 
     // ActualizarUI básica del modal
     document.getElementById('parking-detail-date').innerText = date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -256,44 +327,77 @@ function getAssignmentsForDate(date) {
     const diffTime = currentMonday - startMonday;
     const weeksPassed = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
 
-    const mold = window.getMold(N, U);
-    const rotationOffset = (U > N) ? weeksPassed : 0;
-    const rotatedMembers = window.rotateUsers(window.parkingState.members, rotationOffset);
+    // Separate fixed spot users from shared users
+    const fixedSpotUsers = window.parkingState.members.filter(m => m.has_fixed_spot);
+    const sharedUsers = window.parkingState.members.filter(m => !m.has_fixed_spot);
+    const sharedU = sharedUsers.length;
+
+    // Calculate N for shared spots only (exclude fixed spots)
+    const sharedSpots = window.parkingState.spots.filter(s => !s.is_fixed_spot);
+    const sharedN = sharedSpots.length;
+
     const dayOfWeek = date.getDay() || 7;
 
-    // 1. Identify interested users
-    const interestedIds = rotatedMembers.filter(m => {
+    // 1. Identify interested users (both fixed and shared)
+    const interestedIds = window.parkingState.members.filter(m => {
         const override = window.parkingState.attendance[dateIsoStr]?.find(a => a.user_id === m.user_id);
         if (override) return override.is_attending;
         return m.routine && m.routine.includes(dayOfWeek);
     }).map(m => m.user_id);
 
-    // 2. Create assignment objects
-    let assignments = rotatedMembers.map((member, index) => ({
+    // 2. Process fixed spot users first
+    let fixedSpotAssignments = fixedSpotUsers.map(member => {
+        const isAttending = interestedIds.includes(member.user_id);
+        const spot = window.parkingState.spots.find(s => s.id === member.fixed_spot_id);
+        const spotName = spot?.name || 'Unknown';
+        
+        return {
+            user: member,
+            moldValue: 'FIXED',
+            isAttending: isAttending,
+            finalSpotName: isAttending ? spotName : null,
+            priority: 0,
+            isFixedSpot: true,
+            spotName: spotName,
+            spotAvailable: !isAttending
+        };
+    });
+
+    // 3. Process shared users with rotation
+    let availableFixedSpots = fixedSpotAssignments
+        .filter(a => a.spotAvailable)
+        .map(a => ({ spotName: a.spotName, originalOwner: a.user }));
+
+    const mold = window.getMold(sharedN, sharedU, true); // Use sharedN instead of N
+    const rotationOffset = (sharedU > sharedN) ? weeksPassed : 0;
+    const rotatedSharedMembers = window.rotateUsers(sharedUsers, rotationOffset);
+
+    let sharedAssignments = rotatedSharedMembers.map((member, index) => ({
         user: member,
-        moldValue: mold[index],
+        moldValue: mold[index] || 'R',
         isAttending: interestedIds.includes(member.user_id),
         finalSpotName: null,
-        priority: index
+        priority: index,
+        isFixedSpot: false
     }));
 
-    // 3. Manage owners (P) and detect gaps
-    let availablePhysicalSpots = [];
-    assignments.forEach(a => {
+    // 4. Manage shared spots (P) and detect gaps
+    let availableSharedSpots = [];
+    sharedAssignments.forEach(a => {
         if (a.moldValue.startsWith('P')) {
             const spotIndex = parseInt(a.moldValue.substring(1)) - 1;
-            const spotName = window.parkingState.spots[spotIndex]?.name || a.moldValue;
+            const spotName = sharedSpots[spotIndex]?.name || a.moldValue;
 
             if (a.isAttending) {
                 a.finalSpotName = spotName;
             } else {
-                availablePhysicalSpots.push(spotName);
+                availableSharedSpots.push(spotName);
             }
         }
     });
 
-    // 4. Manage Reserves (R)
-    let reserveCandidates = assignments
+    // 5. Manage Reserves (R) for shared users
+    let reserveCandidates = sharedAssignments
         .filter(a => a.moldValue.startsWith('R') && a.isAttending)
         .sort((a, b) => {
             const numA = parseInt(a.moldValue.substring(1));
@@ -301,13 +405,25 @@ function getAssignmentsForDate(date) {
             return numA - numB;
         });
 
+    // First assign available shared spots to reserves
     reserveCandidates.forEach(candidate => {
-        if (availablePhysicalSpots.length > 0) {
-            candidate.finalSpotName = availablePhysicalSpots.shift();
+        if (availableSharedSpots.length > 0) {
+            candidate.finalSpotName = availableSharedSpots.shift();
         }
     });
 
-    return assignments;
+    // Then assign available fixed spots to remaining reserves
+    reserveCandidates.forEach(candidate => {
+        if (!candidate.finalSpotName && availableFixedSpots.length > 0) {
+            const fixedSpot = availableFixedSpots.shift();
+            candidate.finalSpotName = fixedSpot.spotName;
+            candidate.assignedFixedSpot = true;
+            candidate.fixedSpotOwner = fixedSpot.originalOwner;
+        }
+    });
+
+    // Combine both assignments
+    return [...fixedSpotAssignments, ...sharedAssignments];
 }
 
 function closeParkingDayDetail() {
@@ -323,7 +439,11 @@ function openParkingMembersModal() {
     const list = document.getElementById('parking-members-list-general');
     const membersBase = window.parkingState.members; // Orden original, sin rotar
 
-    const U = membersBase.length; // Orden original, sin rotar
+    // Separate fixed and shared members
+    const fixedMembers = membersBase.filter(m => m.has_fixed_spot);
+    const sharedMembers = membersBase.filter(m => !m.has_fixed_spot);
+
+    const sharedU = sharedMembers.length; // Only shared members for rotation
 
     const today = new Date(); // Use today for "current week" context in members modal
     const startDate = window.parkingState.startDate || new Date(2025, 0, 6);
@@ -336,16 +456,58 @@ function openParkingMembersModal() {
     const diffTime = currentMonday - startMonday;
     const weeksPassed = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7));
 
-    const N = window.parkingState.spots.length;
-    const mold = window.getMold(N, U);
+    const sharedSpots = window.parkingState.spots.filter(s => !s.is_fixed_spot);
+    const sharedN = sharedSpots.length;
+    const mold = window.getMold(sharedN, sharedU, true);
 
     // Calculamos el desplazamiento para las etiquetas del molde
-    const offset = (U > N) ? (weeksPassed % U) : 0;
+    const offset = (sharedU > sharedN) ? (weeksPassed % sharedU) : 0;
 
-    list.innerHTML = membersBase.map((m, index) => {
-        // Buscamos qué etiqueta le toca a este usuario fijo según la semana
-        // Usamos (index + offset) % U para asignar la etiqueta rotada al nombre fijo
-        const moldValue = mold[(index + (U - offset)) % U];
+    let html = '';
+
+    // Sección de miembros con plaza fija
+    if (fixedMembers.length > 0) {
+        html += `<div class="mb-4">
+            <h4 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <i class="fas fa-lock"></i> Plazas Fijas
+            </h4>`;
+        
+        html += fixedMembers.map(m => {
+            const spot = window.parkingState.spots.find(s => s.id === m.fixed_spot_id);
+            const spotName = spot?.name || 'Unknown';
+            
+            return `
+                <div class="flex items-center justify-between p-4 rounded-xl bg-indigo-900/10 border border-indigo-500/20 transition-all">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-900/30 flex items-center justify-center text-[10px] font-black text-indigo-400 border border-indigo-500/30">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-white font-bold text-sm">${m.display_name}</span>
+                            <span class="text-[9px] uppercase tracking-widest text-indigo-400 font-black">PLAZA FIJA</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-black text-xs px-3 py-1.5 rounded-lg bg-indigo-500 text-white">
+                            ${spotName}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        html += `</div>`;
+    }
+
+    // Sección de miembros con plaza compartida
+    html += `<div>
+        <h4 class="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+            <i class="fas fa-users"></i> Plazas Compartidas
+        </h4>`;
+    
+    html += sharedMembers.map((m, index) => {
+        // Buscamos qué etiqueta le toca a este usuario según la semana
+        const moldValue = mold[(index + (sharedU - offset)) % sharedU];
         const isSpot = moldValue.startsWith('P');
 
         const statusText = isSpot ? "TIENE PLAZA" : "RESERVA";
@@ -366,6 +528,10 @@ function openParkingMembersModal() {
             </div>
         `;
     }).join('');
+    
+    html += `</div>`;
+    
+    list.innerHTML = html;
 
     // Show 'Edit Mold' button only for group admin
     const editBtn = document.getElementById('btn-edit-mold');

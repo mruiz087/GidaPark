@@ -67,16 +67,11 @@ async function createGroup() {
     } else if (type === 'fixed') {
         await createFixedGroupMember(newGroup.id);
     } else if (type === 'parking') {
-        // Automatically join as first member
-        if (window.joinParkingGroup) {
-            try {
-                await window.joinParkingGroup(newGroup.id);
-            } catch (err) {
-                console.error("Error joining parking group after creation:", err);
-                showToast("Error al unirse al grupo de parking", "error");
-            }
+        // Show spot type selection modal
+        if (window.openSpotTypeSelectionModal) {
+            window.openSpotTypeSelectionModal(newGroup.id);
         } else {
-            console.error("joinParkingGroup is not defined on window object");
+            console.error("openSpotTypeSelectionModal is not defined on window object");
         }
     }
 
@@ -141,13 +136,13 @@ async function joinGroup() {
                 await window.joinFixedGroup(g.id);
             }
         } else if (g.type === 'parking') {
-            if (window.joinParkingGroup) {
+            if (window.openSpotTypeSelectionModal) {
                 try {
-                    console.log("Attempting to join parking group:", g.id);
-                    await window.joinParkingGroup(g.id);
+                    console.log("Opening spot type selection for parking group:", g.id);
+                    window.openSpotTypeSelectionModal(g.id);
                 } catch (err) {
-                    console.error("Join parking catch:", err);
-                    showToast("Error Supabase al unirse", "error");
+                    console.error("Error opening spot type selection:", err);
+                    showToast("Error al abrir selección de plaza", "error");
                     return;
                 }
             } else {
