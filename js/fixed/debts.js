@@ -8,6 +8,8 @@
  */
 async function simplificarDeudas(groupId) {
     try {
+        console.log('[SimplificarDeudas] Iniciando simplificación para grupo:', groupId);
+        
         // Obtener todas las deudas activas del grupo
         const { data: debts, error } = await _supabase
             .schema('fixed_carpooling').from('fixed_debts')
@@ -15,7 +17,12 @@ async function simplificarDeudas(groupId) {
             .eq('group_id', groupId)
             .gt('amount', 0);
 
-        if (error || !debts || debts.length === 0) return;
+        if (error || !debts || debts.length === 0) {
+            console.log('[SimplificarDeudas] No hay deudas para simplificar');
+            return;
+        }
+        
+        console.log('[SimplificarDeudas] Deudas iniciales:', debts.length, debts);
 
         let changed = true;
         let iterations = 0;
@@ -80,17 +87,26 @@ async function simplificarDeudas(groupId) {
 
             if (!chainDebts) break;
 
+            console.log('[SimplificarDeudas] Procesando cadenas, deudas actuales:', chainDebts.length);
+
+            // Procesar todas las cadenas posibles en esta iteración
             for (const ab of chainDebts) {
-                // Buscar B→C donde C ≠ A
+                // Buscar B→C (cualquier C, incluyendo A)
                 const bc = chainDebts.find(
                     x => x.creditor_id === ab.debtor_id &&
-                         x.debtor_id   !== ab.creditor_id &&
-                         x.id          !== ab.id
+                         x.id !== ab.id
                 );
                 if (!bc) continue;
 
                 const transfer = Math.min(ab.amount, bc.amount);
                 changed = true;
+                
+                console.log('[SimplificarDeudas] Cadena encontrada:', {
+                    ab: `${ab.creditor_id}→${ab.debtor_id} (${ab.amount})`,
+                    bc: `${bc.creditor_id}→${bc.debtor_id} (${bc.amount})`,
+                    transfer,
+                    result: `${ab.creditor_id}→${bc.debtor_id} (+${transfer})`
+                });
 
                 // Reducir A→B
                 if (ab.amount - transfer <= 0) {
@@ -138,8 +154,10 @@ async function simplificarDeudas(groupId) {
                 break; // Reiniciar con datos frescos
             }
         }
+        
+        console.log('[SimplificarDeudas] Simplificación completada, iteraciones:', iterations);
     } catch (err) {
-        console.error('Error al simplificar deudas:', err);
+        console.error('[SimplificarDeudas] Error al simplificar deudas:', err);
     }
 }
 
