@@ -1,0 +1,5 @@
+{
+  "name": "GidaPark",
+  "description": "Aplicación PWA para gestión de carpooling flexible, carpooling fijo y plazas de parking.",
+  "requestFramePermissions": []
+}
