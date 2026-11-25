@@ -280,6 +280,21 @@ const translations = {
         'parking.plaza_fija_error': 'Por favor, introduce un nombre para tu plaza fija',
         'parking.error_rutina': 'Error al guardar rutina',
         'parking.error_asistencia': 'Error al actualizar asistencia',
+        'parking.plaza_dificil': 'Plaza difícil / baja prioridad',
+        'parking.dificil_badge': 'Difícil',
+        'parking.marcar_dificil': 'Marcar como plaza difícil / baja prioridad',
+        'parking.desmarcar_dificil': 'Quitar marca de plaza difícil',
+        'parking.dificil_marcada': 'Plaza marcada como difícil (se evitará asignar si hay huecos)',
+        'parking.dificil_desmarcada': 'Plaza restaurada a prioridad normal',
+        'parking.info_optimizacion': 'Las plazas marcadas con ⚠️ quedarán libres automáticamente cuando haya plazas vacantes.',
+        'parking.reubicado_auto': 'Reubicado automáticamente',
+        'parking.optimizacion_banner_title': 'Optimización de plaza difícil',
+        'parking.reubicado_banner_text': 'aparca hoy en',
+        'parking.la_plaza': 'La plaza',
+        'parking.queda_vacia_hoy': 'queda vacante hoy',
+        'parking.plazas_libres_hoy': 'Plazas vacantes hoy',
+        'parking.plaza_sin_ocupar': 'Plaza libre',
+        'parking.plaza_dificil_vacante': 'Difícil evitada hoy',
 
         // Days of week
         'days': ['DO', 'LU', 'MA', 'MI', 'JU', 'VI', 'SA']
@@ -564,6 +579,21 @@ const translations = {
         'parking.plaza_fija_error': 'Mesedez, sartu zure plaza finkorako izen bat',
         'parking.error_rutina': 'Errorea errutina gordetzean',
         'parking.error_asistencia': 'Errorea asistentzia eguneratzean',
+        'parking.plaza_dificil': 'Aparkaleku zaila / lehentasun baxua',
+        'parking.dificil_badge': 'Zaila',
+        'parking.marcar_dificil': 'Markatu aparkaleku zail gisa',
+        'parking.desmarcar_dificil': 'Kendu aparkaleku zailaren marka',
+        'parking.dificil_marcada': 'Plaza zail gisa markatuta (libre utziko da lekurik badago)',
+        'parking.dificil_desmarcada': 'Plaza ohiko lehentasunera itzuli da',
+        'parking.info_optimizacion': '⚠️ ikurdun plazak libre geratuko dira automatikoki hutsuneak daudenean.',
+        'parking.reubicado_auto': 'Automatikoki birkokatuta',
+        'parking.optimizacion_banner_title': 'Plaza zailaren optimizazioa',
+        'parking.reubicado_banner_text': 'hemen aparkatzen du gaur:',
+        'parking.la_plaza': 'Eta',
+        'parking.queda_vacia_hoy': 'plaza hutsik geratzen da gaur',
+        'parking.plazas_libres_hoy': 'Gaur hutsik dauden plazak',
+        'parking.plaza_sin_ocupar': 'Plaza librea',
+        'parking.plaza_dificil_vacante': 'Zaila gaur saihestua',
 
         // Days of week
         'days': ['IG', 'AL', 'AS', 'AZ', 'OG', 'OL', 'LA']

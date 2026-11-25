@@ -318,11 +318,23 @@ async function loadTodayDashboard() {
                     attendanceMap[row.date].push(row);
                 });
 
+                let difficultSpotIds = g.metadata?.parking_settings?.difficult_spot_ids;
+                if (!Array.isArray(difficultSpotIds)) {
+                    try {
+                        const localDiff = localStorage.getItem(`parking_difficult_spots_${g.id}`);
+                        const parsedDiff = localDiff ? JSON.parse(localDiff) : [];
+                        difficultSpotIds = Array.isArray(parsedDiff) ? parsedDiff : [];
+                    } catch {
+                        difficultSpotIds = [];
+                    }
+                }
+
                 window.parkingState = {
                     members: mems || [],
                     spots: spots || [],
                     startDate: g.created_at ? new Date(g.created_at) : new Date(),
                     customMold: Array.isArray(rawCustomMold) && rawCustomMold.length > 0 ? rawCustomMold : null,
+                    difficultSpotIds,
                     attendance: attendanceMap
                 };
 
@@ -349,7 +361,8 @@ async function loadTodayDashboard() {
                 if (!mine || !mine.isAttending) {
                     statusHtml = `<span class="text-slate-500 font-semibold">${t('shared.no_aparcas_hoy')}${nextParkingPart}</span>`;
                 } else if (mine.finalSpotName) {
-                    statusHtml = `<span class="text-emerald-400 font-black"><i class="fas fa-parking mr-1"></i> ${t('shared.tienes_plaza_hoy')} <span class="bg-emerald-500/20 px-2 py-0.5 rounded-lg text-emerald-300">${escapeHtml(mine.finalSpotName)}</span></span>`;
+                    const diffIcon = mine.isDifficultSpot ? ` <i class="fas fa-triangle-exclamation text-amber-400 text-[10px]" title="${escapeHtml(t('parking.plaza_dificil'))}"></i>` : '';
+                    statusHtml = `<span class="text-emerald-400 font-black"><i class="fas fa-parking mr-1"></i> ${t('shared.tienes_plaza_hoy')} <span class="bg-emerald-500/20 px-2 py-0.5 rounded-lg text-emerald-300">${escapeHtml(mine.finalSpotName)}${diffIcon}</span></span>`;
                     highlightClass = 'border-emerald-500/40 bg-emerald-950/20';
                 } else {
                     statusHtml = `<span class="text-amber-400 font-bold"><i class="fas fa-clock mr-1"></i> ${t('shared.en_reserva_hoy')}</span>`;

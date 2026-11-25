@@ -1,4 +1,4 @@
-// State for weekly view
+// State for weekly view 
 let currentWeekOffset = 0;
 window.currentGroupId = window.currentGroupId || null;
 
@@ -85,7 +85,10 @@ function renderParkingCalendar() {
 
         let statusBadge = `<span class="text-[10px] font-bold text-slate-500 uppercase">${t('parking.desapuntado')}</span>`;
         if (hasSpot) {
-            statusBadge = `<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black ${isFixedSpot ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'}">${isFixedSpot ? '<i class="fas fa-lock text-[9px]"></i>' : '<i class="fas fa-parking text-[9px]"></i>'}${escapeHtml(myAssign.finalSpotName)}</span>`;
+            const difficultIcon = myAssign.isDifficultSpot
+                ? `<i class="fas fa-triangle-exclamation text-amber-400 text-[9px]" title="${escapeHtml(t('parking.plaza_dificil'))}"></i>`
+                : '';
+            statusBadge = `<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black ${isFixedSpot ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'}">${isFixedSpot ? '<i class="fas fa-lock text-[9px]"></i>' : '<i class="fas fa-parking text-[9px]"></i>'}${escapeHtml(myAssign.finalSpotName)}${difficultIcon}</span>`;
         } else if (isReserve) {
             statusBadge = `<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30"><i class="fas fa-clock text-[9px]"></i>${t('parking.en_reserva')}</span>`;
         }
@@ -138,6 +141,8 @@ function openParkingDayDetail(dateInput) {
     }).map(m => m.user_id);
 
     const assignments = getAssignmentsForDate(date);
+    const reassignments = assignments.reassignments || [];
+    const unassignedSpots = assignments.unassignedSpots || [];
     const list = document.getElementById('parking-assignments-list');
     const myId = (window.currentUser || window.user)?.id;
 
@@ -145,6 +150,21 @@ function openParkingDayDetail(dateInput) {
     const sharedAssignments = assignments.filter(a => !a.isFixedSpot);
 
     let html = '';
+
+    // Banner de transparencia para todos los miembros si hubo reubicación automática
+    if (reassignments.length > 0) {
+        html += reassignments.map(r => `
+            <div class="mb-4 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2.5 shadow-lg shadow-amber-950/20">
+                <i class="fas fa-circle-info text-amber-400 mt-0.5 text-sm shrink-0"></i>
+                <div class="flex flex-col gap-0.5">
+                    <span class="font-bold text-amber-300">${t('parking.optimizacion_banner_title')}</span>
+                    <span class="text-[11px] text-amber-200/90 leading-tight">
+                        <strong>${escapeHtml(r.user.display_name)}</strong> ${t('parking.reubicado_banner_text')} <strong class="text-white">${escapeHtml(r.newSpotName)}</strong>. ${t('parking.la_plaza')} <strong class="text-amber-300">${escapeHtml(r.oldSpotName)}</strong> ${t('parking.queda_vacia_hoy')}.
+                    </span>
+                </div>
+            </div>
+        `).join('');
+    }
 
     if (fixedSpotAssignments.length > 0) {
         html += `<div class="mb-4">
@@ -218,6 +238,13 @@ function openParkingDayDetail(dateInput) {
             }
         }
 
+        const difficultBadgeIcon = (a.finalSpotName && a.isDifficultSpot)
+            ? ` <i class="fas fa-triangle-exclamation text-amber-300 text-[9px] ml-1" title="${escapeHtml(t('parking.plaza_dificil'))}"></i>`
+            : '';
+        const reassignedHint = a.reassignedFromDifficult
+            ? `<span class="text-[9px] font-bold text-emerald-300/90 mt-0.5"><i class="fas fa-arrows-rotate text-[8px] mr-1"></i>${escapeHtml(t('parking.reubicado_auto'))}</span>`
+            : '';
+
         return `
             <div class="flex items-center justify-between p-3 mb-2 rounded-xl border ${rowBg} ${isMe ? 'ring-1 ring-emerald-400' : ''} ${!a.isAttending ? 'opacity-45' : ''}">
                 <div class="flex flex-col">
@@ -226,14 +253,39 @@ function openParkingDayDetail(dateInput) {
                         <span class="text-[9px] font-black px-1.5 bg-slate-900 text-slate-400 rounded border border-slate-700">${escapeHtml(a.moldValue)}</span>
                         <span class="text-[10px] uppercase tracking-widest font-black ${statusColor}">${statusLabel}</span>
                     </div>
+                    ${reassignedHint}
                 </div>
-                <span class="font-black text-xs px-3 py-1.5 rounded-lg ${a.finalSpotName ? (assignedFixedSpot ? 'bg-indigo-500 text-white' : 'bg-emerald-500 text-white') : 'bg-slate-700 text-slate-300'}">
-                    ${assignedFixedSpot ? '<i class="fas fa-lock text-[8px] mr-1"></i>' : ''}${escapeHtml(badgeText)}
+                <span class="font-black text-xs px-3 py-1.5 rounded-lg inline-flex items-center ${a.finalSpotName ? (assignedFixedSpot ? 'bg-indigo-500 text-white' : 'bg-emerald-500 text-white') : 'bg-slate-700 text-slate-300'}">
+                    ${assignedFixedSpot ? '<i class="fas fa-lock text-[8px] mr-1"></i>' : ''}${escapeHtml(badgeText)}${difficultBadgeIcon}
                 </span>
             </div>
         `;
     }).join('');
     html += `</div>`;
+
+    // Tarjeta visual transparente de plazas vacantes hoy
+    if (unassignedSpots.length > 0) {
+        html += `
+            <div class="mt-4 pt-3 border-t border-slate-700/60">
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <i class="fas fa-circle-check text-emerald-400"></i> ${t('parking.plazas_libres_hoy')}
+                </h4>
+                <div class="space-y-2">
+        `;
+        html += unassignedSpots.map(s => `
+            <div class="flex items-center justify-between p-2.5 rounded-xl border ${s.isDifficult ? 'bg-amber-950/20 border-amber-500/30' : 'bg-slate-900/40 border-slate-700/60'}">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full ${s.isDifficult ? 'bg-amber-400' : 'bg-emerald-400'}"></span>
+                    <span class="text-xs font-bold text-slate-300">${escapeHtml(s.name)}</span>
+                    ${s.isDifficult ? `<span class="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">${t('parking.dificil_badge')}</span>` : ''}
+                </div>
+                <span class="text-[9px] uppercase font-black ${s.isDifficult ? 'text-amber-400' : 'text-slate-400'}">
+                    ${s.isDifficult ? t('parking.plaza_dificil_vacante') : t('parking.plaza_sin_ocupar')}
+                </span>
+            </div>
+        `).join('');
+        html += `</div></div>`;
+    }
 
     list.innerHTML = html;
 
@@ -270,6 +322,7 @@ function getAssignmentsForDate(date) {
         return m.routine && m.routine.includes(dayOfWeek);
     }).map(m => m.user_id);
 
+    // Asignación de usuarios de plaza fija
     const fixedSpotAssignments = fixedSpotUsers.map(member => {
         const isAttending = interestedIds.includes(member.user_id);
         const spot = window.parkingState.spots.find(s => s.id === member.fixed_spot_id);
@@ -295,49 +348,173 @@ function getAssignmentsForDate(date) {
     const rotationOffset = (sharedU > sharedN) ? weeksPassed : 0;
     const rotatedSharedMembers = window.rotateUsers(sharedUsers, rotationOffset);
 
+    const difficultIds = new Set(window.parkingState.difficultSpotIds || []);
+
     const sharedAssignments = rotatedSharedMembers.map((member, index) => ({
         user: member,
         moldValue: mold[index] || 'R',
         isAttending: interestedIds.includes(member.user_id),
+        finalSpotId: null,
         finalSpotName: null,
+        isDifficultSpot: false,
+        reassignedFromDifficult: false,
         priority: index,
         isFixedSpot: false
     }));
 
+    // ========== ETAPA 1: ASIGNACIÓN BASE DEL MOLDE (Titulares P) ==========
     const availableSharedSpots = [];
+    const assignedSpotIndices = new Set();
+
     sharedAssignments.forEach(a => {
         if (a.moldValue.startsWith('P')) {
             const spotIndex = parseInt(a.moldValue.substring(1)) - 1;
-            const spotName = sharedSpots[spotIndex]?.name || a.moldValue;
+            const spot = sharedSpots[spotIndex] || null;
+            const spotName = spot?.name || a.moldValue;
+            const isDifficult = Boolean(spot && difficultIds.has(spot.id));
+            if (spot) assignedSpotIndices.add(spotIndex);
 
             if (a.isAttending) {
+                a.finalSpotId = spot?.id || null;
                 a.finalSpotName = spotName;
+                a.isDifficultSpot = isDifficult;
             } else {
-                availableSharedSpots.push(spotName);
+                availableSharedSpots.push({ spot, spotName, isDifficult });
             }
         }
     });
+
+    // Incluir plazas compartidas sobrantes (cuando sharedN > sharedU)
+    sharedSpots.forEach((spot, idx) => {
+        if (!assignedSpotIndices.has(idx)) {
+            availableSharedSpots.push({
+                spot,
+                spotName: spot.name,
+                isDifficult: difficultIds.has(spot.id)
+            });
+        }
+    });
+
+    // ========== ETAPA 2: ASIGNACIÓN DE RESERVAS ASISTENTES (R1, R2, ...) ==========
+    // Los reservas consumen primero las plazas compartidas cómodas, luego fijas libres, luego difícil.
+    // CADA RESERVA CONSERVA SU PLAZA ÍNTEGRAMENTE (el titular de la plaza difícil nunca se la quita).
+    availableSharedSpots.sort((a, b) => Number(a.isDifficult) - Number(b.isDifficult));
 
     const reserveCandidates = sharedAssignments
         .filter(a => a.moldValue.startsWith('R') && a.isAttending)
         .sort((a, b) => parseInt(a.moldValue.substring(1)) - parseInt(b.moldValue.substring(1)));
 
     reserveCandidates.forEach(candidate => {
-        if (availableSharedSpots.length > 0) {
-            candidate.finalSpotName = availableSharedSpots.shift();
-        }
-    });
-
-    reserveCandidates.forEach(candidate => {
-        if (!candidate.finalSpotName && availableFixedSpots.length > 0) {
+        // 1. Preferir plaza compartida cómoda
+        const goodSharedIdx = availableSharedSpots.findIndex(s => !s.isDifficult);
+        if (goodSharedIdx !== -1) {
+            const chosen = availableSharedSpots.splice(goodSharedIdx, 1)[0];
+            candidate.finalSpotId = chosen.spot?.id || null;
+            candidate.finalSpotName = chosen.spotName;
+            candidate.isDifficultSpot = false;
+        } else if (availableFixedSpots.length > 0) {
+            // 2. Si solo queda la difícil pero hay fija libre disponible, asignar la fija al reserva
             const fixedSpot = availableFixedSpots.shift();
             candidate.finalSpotName = fixedSpot.spotName;
             candidate.assignedFixedSpot = true;
             candidate.fixedSpotOwner = fixedSpot.originalOwner;
+            candidate.isDifficultSpot = false;
+        } else if (availableSharedSpots.length > 0) {
+            // 3. Si solo queda la compartida difícil
+            const chosen = availableSharedSpots.shift();
+            candidate.finalSpotId = chosen.spot?.id || null;
+            candidate.finalSpotName = chosen.spotName;
+            candidate.isDifficultSpot = chosen.isDifficult;
         }
     });
 
-    return [...fixedSpotAssignments, ...sharedAssignments];
+    // ========== ETAPA 3: REVISIÓN DE VACANTES REMANENTES (Optimización Post-Molde y Post-Reservas) ==========
+    // Solo si tras cubrir titulares y reservas SOBRAN plazas vacantes (compartidas cómodas o fijas libres),
+    // el titular de la plaza difícil se traslada a la vacante, dejando la plaza difícil vacía hoy.
+    const attendingDifficultHolders = sharedAssignments.filter(
+        a => a.isAttending && a.moldValue.startsWith('P') && a.isDifficultSpot
+    );
+
+    const reassignments = [];
+
+    attendingDifficultHolders.forEach(holder => {
+        const goodSharedIdx = availableSharedSpots.findIndex(s => !s.isDifficult);
+        if (goodSharedIdx !== -1) {
+            // Hay una plaza compartida cómoda que nadie necesitó
+            const bestFree = availableSharedSpots.splice(goodSharedIdx, 1)[0];
+            const oldSpotName = holder.finalSpotName;
+            const oldSpot = sharedSpots.find(s => s.id === holder.finalSpotId) || null;
+
+            holder.finalSpotId = bestFree.spot?.id || null;
+            holder.finalSpotName = bestFree.spotName;
+            holder.isDifficultSpot = false;
+            holder.reassignedFromDifficult = true;
+
+            availableSharedSpots.push({
+                spot: oldSpot,
+                spotName: oldSpotName,
+                isDifficult: true,
+                isVacantDueToOptimization: true
+            });
+
+            reassignments.push({
+                user: holder.user,
+                oldSpotName: oldSpotName,
+                newSpotName: bestFree.spotName,
+                type: 'shared'
+            });
+        } else if (availableFixedSpots.length > 0) {
+            // Hay una plaza fija libre que ningún reserva necesitó
+            const fixedSpot = availableFixedSpots.shift();
+            const oldSpotName = holder.finalSpotName;
+            const oldSpot = sharedSpots.find(s => s.id === holder.finalSpotId) || null;
+
+            holder.finalSpotName = fixedSpot.spotName;
+            holder.assignedFixedSpot = true;
+            holder.fixedSpotOwner = fixedSpot.originalOwner;
+            holder.isDifficultSpot = false;
+            holder.reassignedFromDifficult = true;
+
+            availableSharedSpots.push({
+                spot: oldSpot,
+                spotName: oldSpotName,
+                isDifficult: true,
+                isVacantDueToOptimization: true
+            });
+
+            reassignments.push({
+                user: holder.user,
+                oldSpotName: oldSpotName,
+                newSpotName: fixedSpot.spotName,
+                type: 'fixed'
+            });
+        }
+    });
+
+    // Identificar plazas vacantes para la UI de transparencia
+    const unassignedSpots = [];
+    availableSharedSpots.forEach(s => {
+        unassignedSpots.push({
+            name: s.spotName,
+            isDifficult: s.isDifficult,
+            isFixed: false,
+            reason: s.isVacantDueToOptimization ? 'optimization' : 'unclaimed'
+        });
+    });
+    availableFixedSpots.forEach(f => {
+        unassignedSpots.push({
+            name: f.spotName,
+            isDifficult: false,
+            isFixed: true,
+            originalOwner: f.originalOwner,
+            reason: 'unclaimed_fixed'
+        });
+    });
+
+    const result = [...fixedSpotAssignments, ...sharedAssignments];
+    result.unassignedSpots = unassignedSpots;
+    result.reassignments = reassignments;
+    return result;
 }
 
 function closeParkingDayDetail() {
@@ -404,9 +581,13 @@ function openParkingMembersModal() {
             <i class="fas fa-users"></i> ${t('parking.plazas_compartidas')}
         </h4>`;
 
+    const difficultIds = new Set(window.parkingState.difficultSpotIds || []);
+
     html += sharedMembers.map((m, index) => {
         const moldValue = sharedU > 0 ? (mold[(index + (sharedU - offset)) % sharedU] || 'R') : 'R';
         const isSpot = moldValue.startsWith('P');
+        const spotObj = isSpot ? sharedSpots[parseInt(moldValue.substring(1)) - 1] : null;
+        const isDifficultSpot = Boolean(spotObj && difficultIds.has(spotObj.id));
 
         const statusText = isSpot ? t('parking.tiene_plaza') : t('parking.reserva');
         const statusColor = isSpot ? "text-emerald-400" : "text-amber-400";
@@ -420,13 +601,25 @@ function openParkingMembersModal() {
                     </div>
                     <div class="flex flex-col">
                         <span class="text-white font-bold text-sm">${escapeHtml(m.display_name)}</span>
-                        <span class="text-[9px] uppercase tracking-widest ${statusColor} font-black">${statusText}</span>
+                        <span class="text-[9px] uppercase tracking-widest ${statusColor} font-black">
+                            ${statusText}${isDifficultSpot ? ` · <span class="text-amber-400"><i class="fas fa-triangle-exclamation text-[8px]"></i> ${escapeHtml(spotObj.name)}</span>` : ''}
+                        </span>
                     </div>
                 </div>
             </div>
         `;
     }).join('');
     html += `</div>`;
+
+    if (difficultIds.size > 0) {
+        const diffNames = sharedSpots.filter(s => difficultIds.has(s.id)).map(s => escapeHtml(s.name)).join(', ');
+        html += `
+            <div class="mt-3 p-3 rounded-xl bg-amber-950/20 border border-amber-500/30 text-amber-300 text-[10px] flex items-center gap-2">
+                <i class="fas fa-triangle-exclamation text-amber-400 shrink-0"></i>
+                <span><strong>${t('parking.plaza_dificil')}:</strong> ${diffNames}. ${t('parking.info_optimizacion')}</span>
+            </div>
+        `;
+    }
 
     list.innerHTML = html;
 
@@ -501,16 +694,26 @@ function renderSpotsList() {
     if (!window.parkingState || !window.parkingState.spots) return;
 
     const spots = window.parkingState.spots;
+    const difficultIds = new Set(window.parkingState.difficultSpotIds || []);
+
     list.innerHTML = spots.map((s, idx) => {
         const isFirst = idx === 0;
         const isLast = idx === spots.length - 1;
+        const isDifficult = !s.is_fixed_spot && difficultIds.has(s.id);
         return `
-        <div class="flex justify-between items-center bg-slate-900/60 p-3 rounded-xl border border-slate-700/80 gap-2">
+        <div class="flex justify-between items-center bg-slate-900/60 p-3 rounded-xl border ${isDifficult ? 'border-amber-500/40' : 'border-slate-700/80'} gap-2">
             <div class="flex items-center gap-2 min-w-0">
                 ${s.is_fixed_spot ? '<i class="fas fa-lock text-indigo-400 text-xs"></i>' : '<i class="fas fa-parking text-emerald-400 text-xs"></i>'}
                 <span class="text-sm font-bold text-slate-200 truncate">${escapeHtml(s.name)}</span>
+                ${isDifficult ? `<span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 shrink-0">${escapeHtml(t('parking.dificil_badge'))}</span>` : ''}
             </div>
             <div class="flex items-center gap-1 shrink-0">
+                ${!s.is_fixed_spot ? `
+                <button type="button" onclick="handleToggleDifficultSpot('${s.id}')" title="${escapeHtml(isDifficult ? t('parking.desmarcar_dificil') : t('parking.marcar_dificil'))}"
+                    class="w-7 h-7 rounded-lg ${isDifficult ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-slate-800 text-slate-400 hover:text-amber-400 hover:bg-slate-700'} text-xs flex items-center justify-center transition-colors">
+                    <i class="fas fa-triangle-exclamation text-[10px]"></i>
+                </button>
+                ` : ''}
                 <button type="button" onclick="handleMoveSpot('${s.id}', -1)" title="${t('parking.move_up')}"
                     class="w-7 h-7 rounded-lg ${isFirst ? 'bg-slate-800/40 text-slate-600 cursor-not-allowed' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'} text-xs flex items-center justify-center" ${isFirst ? 'disabled' : ''}>
                     <i class="fas fa-arrow-up text-[10px]"></i>
@@ -550,6 +753,12 @@ async function handleMoveSpot(id, direction) {
 async function handleDeleteSpot(id) {
     await window.deleteSpot(id);
     renderSpotsList();
+}
+
+async function handleToggleDifficultSpot(id) {
+    await window.toggleDifficultSpot(id);
+    renderSpotsList();
+    renderParkingCalendar();
 }
 
 // ========== MOLD EDITOR ==========
@@ -653,6 +862,7 @@ Object.assign(window, {
     handleAddSpot,
     handleMoveSpot,
     handleDeleteSpot,
+    handleToggleDifficultSpot,
     renderParkingCalendar,
     refreshParkingData,
     openParkingDayDetail,

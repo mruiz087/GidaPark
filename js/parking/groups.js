@@ -7,6 +7,8 @@ window.parkingState = {
     mold: [],
     attendance: {},
     customMold: null,
+    difficultSpotIds: [],
+    groupMetadata: {},
     isOwner: false
 };
 
@@ -87,7 +89,7 @@ async function loadParkingGroupDetail(groupId, groupName) {
 
     const p1 = _supabase.schema('parking').from('members').select('*').eq('group_id', groupId).order('order_index');
     const p2 = _supabase.schema('parking').from('spots').select('*').eq('group_id', groupId).order('order_index');
-    const p3 = _supabase.from('groups').select('created_at, custom_mold').eq('id', groupId).single();
+    const p3 = _supabase.from('groups').select('created_at, custom_mold, metadata').eq('id', groupId).single();
 
     const [membersRes, spotsRes, groupRes] = await Promise.all([p1, p2, p3]);
 
@@ -98,6 +100,26 @@ async function loadParkingGroupDetail(groupId, groupName) {
     window.parkingState.members = membersRes.data || [];
     window.parkingState.spots = spotsRes.data || [];
     window.parkingState.startDate = groupRes.data?.created_at ? new Date(groupRes.data.created_at) : new Date();
+
+    const groupMeta = groupRes.data?.metadata || {};
+    window.parkingState.groupMetadata = groupMeta;
+    if (window.currentGroup && window.currentGroup.id === groupId) {
+        window.currentGroup.metadata = groupMeta;
+    }
+
+    let difficultSpotIds = groupMeta?.parking_settings?.difficult_spot_ids;
+    if (!Array.isArray(difficultSpotIds)) {
+        try {
+            const localDiff = localStorage.getItem(`parking_difficult_spots_${groupId}`);
+            const parsedDiff = localDiff ? JSON.parse(localDiff) : [];
+            difficultSpotIds = Array.isArray(parsedDiff) ? parsedDiff : [];
+        } catch {
+            difficultSpotIds = [];
+        }
+    }
+    const validSpotIds = new Set((spotsRes.data || []).map(s => s.id));
+    window.parkingState.difficultSpotIds = difficultSpotIds.filter(id => validSpotIds.has(id));
+    localStorage.setItem(`parking_difficult_spots_${groupId}`, JSON.stringify(window.parkingState.difficultSpotIds));
 
     let rawCustomMold = groupRes.data?.custom_mold;
     if (typeof rawCustomMold === 'string' && rawCustomMold.startsWith('{')) {
@@ -246,7 +268,63 @@ async function deleteSpot(spotId) {
         return;
     }
 
+    if (Array.isArray(window.parkingState.difficultSpotIds) && window.parkingState.difficultSpotIds.includes(spotId)) {
+        const nextIds = window.parkingState.difficultSpotIds.filter(id => id !== spotId);
+        const baseMetadata = window.parkingState.groupMetadata || window.currentGroup?.metadata || {};
+        const nextMetadata = {
+            ...baseMetadata,
+            parking_settings: {
+                ...(baseMetadata.parking_settings || {}),
+                difficult_spot_ids: nextIds
+            }
+        };
+        await _supabase.from('groups').update({ metadata: nextMetadata }).eq('id', window.currentGroupId);
+        window.parkingState.difficultSpotIds = nextIds;
+        localStorage.setItem(`parking_difficult_spots_${window.currentGroupId}`, JSON.stringify(nextIds));
+    }
+
     await loadParkingGroupDetail(window.currentGroupId, document.getElementById('parking-group-title').innerText);
+}
+
+async function toggleDifficultSpot(spotId) {
+    if (!window.currentGroupId || !spotId) return;
+
+    const currentIds = Array.isArray(window.parkingState.difficultSpotIds)
+        ? [...window.parkingState.difficultSpotIds]
+        : [];
+    const isCurrentlyDifficult = currentIds.includes(spotId);
+    const nextIds = isCurrentlyDifficult
+        ? currentIds.filter(id => id !== spotId)
+        : [...currentIds, spotId];
+
+    const baseMetadata = window.parkingState.groupMetadata || window.currentGroup?.metadata || {};
+    const nextMetadata = {
+        ...baseMetadata,
+        parking_settings: {
+            ...(baseMetadata.parking_settings || {}),
+            difficult_spot_ids: nextIds
+        }
+    };
+
+    const { error } = await _supabase
+        .from('groups')
+        .update({ metadata: nextMetadata })
+        .eq('id', window.currentGroupId);
+
+    if (error) {
+        console.error('[Parking] Error updating difficult_spot_ids:', error);
+        showToast(t('shared.error_generico'), 'error');
+        return;
+    }
+
+    localStorage.setItem(`parking_difficult_spots_${window.currentGroupId}`, JSON.stringify(nextIds));
+    window.parkingState.difficultSpotIds = nextIds;
+    window.parkingState.groupMetadata = nextMetadata;
+    if (window.currentGroup && window.currentGroup.id === window.currentGroupId) {
+        window.currentGroup.metadata = nextMetadata;
+    }
+
+    showToast(isCurrentlyDifficult ? t('parking.dificil_desmarcada') : t('parking.dificil_marcada'), isCurrentlyDifficult ? 'info' : 'success');
 }
 
 // 5. Custom Mold Management
@@ -345,6 +423,7 @@ Object.assign(window, {
     addSpot,
     moveSpot,
     deleteSpot,
+    toggleDifficultSpot,
     updateRoutine,
     toggleAttendance,
     fetchAttendanceRange,
